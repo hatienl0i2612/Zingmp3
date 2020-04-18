@@ -39,10 +39,6 @@ class authentication():
         return True
 
 
-def to_screen(text):
-    sys.stdout.write(fg + sb + '[' + fc + '*' + fg + '] : %s\n' % text)
-
-
 class Zingmp3_vn(ProgressBar):
     _regex_url = r'''(?x)^
         ((?:http[s]?|fpt):)\/?\/(?:www\.|m\.|)
@@ -80,7 +76,7 @@ class Zingmp3_vn(ProgressBar):
             name_api = "/video/get-video-detail"
 
         api = self.get_api_with_signature(name_api=name_api, video_id=video_id)
-        info = get_req(url=api, headers=self._headers, type='json')
+        info = get_req(url=api, headers=self._headers, type='json',note="Downloading json from %s." % video_id)
         if _type == 'video-clip' and not self._is_login:
             # TODO: Have api can get best quality like 1080p, 720p, default if dont have VIP just 480p is best quality.
             #  If requests are continuous without downtime,
@@ -115,6 +111,8 @@ class Zingmp3_vn(ProgressBar):
             lyric = data.get('lyric') or try_get(data, lambda x: x['lyrics'][0]['content'], str)
 
             self.start_download(streaming=streaming, _type=_type, title=title, lyric=lyric)
+        else:
+            to_screen("Error can not find media data.")
 
     def start_download(self, streaming, _type, title, lyric):
         stream_data = streaming.get('data', dict)

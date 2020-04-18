@@ -1,4 +1,4 @@
-from .module import *
+from .color import *
 
 ACCENT_CHARS = dict(zip('ÂÃÄÀÁÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖŐØŒÙÚÛÜŰÝÞßàáâãäåæçèéêëìíîïðñòóôõöőøœùúûüűýþÿ',
                         itertools.chain('AAAAAA', ['AE'], 'CEEEEIIIIDNOOOOOOO', ['OE'], 'UUUUUY', ['TH', 'ss'],
@@ -22,6 +22,9 @@ KNOWN_EXTENSIONS = [
     'ape',
     'wav',
     'f4f', 'f4m', 'm3u8', 'smil']
+
+def to_screen(text):
+    sys.stdout.write(fg + sb + '[' + fc + '*' + fg + '] : %s\n' % text)
 
 
 def duration_to_length(duration):

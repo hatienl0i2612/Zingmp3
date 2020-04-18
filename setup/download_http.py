@@ -138,11 +138,11 @@ class Downloader(object):
                                 progress_stats = (
                                     bytesdone, bytesdone * 1.0 / total, rate, eta)
 
-                                if not quiet:
-                                    status = status_string.format(*progress_stats)
-                                    sys.stdout.write(
-                                        "\r" + status + ' ' * 4 + "\r")
-                                    sys.stdout.flush()
+                                # if not quiet:
+                                #     status = status_string.format(*progress_stats)
+                                #     sys.stdout.write(
+                                #         "\r" + status + ' ' * 4 + "\r")
+                                #     sys.stdout.flush()
 
                                 if callback:
                                     callback(total, *progress_stats)
