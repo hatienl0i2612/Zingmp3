@@ -19,8 +19,8 @@ class ProgressBar(object):
         else:
             if '0.00' not in rate:
                 sys.stdout.write(
-                    "\r" + fg + sb + "[" + fc + "*" + fg + "] : Content-length : {} ╢{}{}╟ Speed : {} Percent : {} %\t".format(
-                        file_size,bar,fg,rate, percents
+                    "\r" + fg + sb + "[" + fc + "*" + fg + "] : Content-length : {} ╢{}{}{}╟ Speed : {} Percent : {} %\t".format(
+                        file_size,bar,fg,sb,rate, percents
                     )
                 )
                 sys.stdout.flush()
