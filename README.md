@@ -93,43 +93,30 @@ Options:
   -j, --json      Show json of info media.
   -l, --lyric     Download only lyric.
 ```
- - **Install module**
+
+- ***Install module***
+  ```
+  pip install -r requirements.txt
+  ```
+
+- ***Run***
+  ```
+  python zingmp3.py https://zingmp3.vn/bai-hat/Khoc-Cung-Em-Mr-Siro-Gray-Wind/ZWBI0DFI.html
+  ```
+
+- ***Download with cookies***
+
+  ```
+  python zingmp3.py -c cookies.txt https://zingmp3.vn/bai-hat/Khoc-Cung-Em-Mr-Siro-Gray-Wind/ZWBI0DFI.html
+  ```
+
+- ***Show json of info media***
     ```
-    pip install -r requirements.txt
+    python zingmp3.py -j https://zingmp3.vn/bai-hat/Khoc-Cung-Em-Mr-Siro-Gray-Wind/ZWBI0DFI.html
     ```
- - **Run**
-    ```
-    python zingmp3.py https://zingmp3.vn/bai-hat/Khoc-Cung-Em-Mr-Siro-Gray-Wind/ZWBI0DFI.html
-    ``` 
- - **Download with cookies**
-  
-    ```
-    python zingmp3.py -c cookies.txt https://zingmp3.vn/bai-hat/Khoc-Cung-Em-Mr-Siro-Gray-Wind/ZWBI0DFI.html
-    ```
- - **Set quality want download**
- 
-    No cookies
-    ```
-    python zingmp3.py -q lossless https://zingmp3.vn/bai-hat/Khoc-Cung-Em-Mr-Siro-Gray-Wind/ZWBI0DFI.html
-    ```
-    
-    with cookies
-    ```
-    python zingmp3.py -c cookies.txt -q lossless https://zingmp3.vn/bai-hat/Khoc-Cung-Em-Mr-Siro-Gray-Wind/ZWBI0DFI.html
-    ```
-    
-    Video
-    ```
-    python zingmp3.py -q 1080 https://zingmp3.vn/video-clip/Em-Gi-Oi-Jack-K-ICM/ZWAEFWIF.html
-    ```
-    
- - **Show json of info media**
-     ```
-     python zingmp3.py -j https://zingmp3.vn/bai-hat/Khoc-Cung-Em-Mr-Siro-Gray-Wind/ZWBI0DFI.html
-     ```
 
 ## ***Note***
 - All file downloaded in folder DOWNLOAD at the same path
 - If there's an error or problem, please write issue out here
- [`zingmp3 issues`](https://github.com/hatienl0i261299/Zingmp3_api/issues)
+ [`zingmp3 issues`](https://github.com/hatienl0i261299/Zingmp3/issues)
 - FB: 100011734236090
