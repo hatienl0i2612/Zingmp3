@@ -121,4 +121,4 @@ Options:
 ## ***Note***
 - ***All file downloaded in folder DOWNLOAD at the same path***
 - ***If there's an error or problem, please write issue out here [`zingmp3 issues`](https://github.com/hatienl0i261299/Zingmp3/issues)***
-- ***FB: [hatienl0i261299](fb.com/100011734236090) ***
+- ***FB: 100011734236090***
