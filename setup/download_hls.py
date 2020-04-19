@@ -1,4 +1,6 @@
 from .progress_bar import *
+from .utils import to_screen
+
 
 class ConnectionError(RequestException):
     """A Connection error occurred."""
@@ -6,7 +8,8 @@ class ConnectionError(RequestException):
 
 early_py_version = sys.version_info[:2] < (2, 7)
 
-def use_ffmpeg(url, filename, DirDownload,ext):
+
+def use_ffmpeg(url, filename, DirDownload, ext):
     """
     - use ffmpeg to download with url and user_agent and convert them to .mp4 and put them to path download
     :param url: url m3u8 decripted in GetM3u8
@@ -14,12 +17,12 @@ def use_ffmpeg(url, filename, DirDownload,ext):
     :param DirDownload: path download to put all video downloaded in there
     :return: a processbar in terminal
     """
-    if os.path.exists(r'{}\{}.{}'.format(DirDownload, filename,ext)) is True:
+    if os.path.exists(r'{}\{}.{}'.format(DirDownload, filename, ext)) is True:
         sys.stdout.write(fg + '[' + fc + '*' + fg + '] : Already downloaded\n')
     else:
-        bar_length=25
+        bar_length = 25
         try:
-            cmd = 'ffmpeg -i "{}" -c copy "{}\{}.{}" -y'.format(url, DirDownload, filename,ext)
+            cmd = 'ffmpeg -i "{}" -c copy "{}\{}.{}" -y'.format(url, DirDownload, filename, ext)
             x = 0
             duration = []
             process = subprocess.Popen(
@@ -31,6 +34,7 @@ def use_ffmpeg(url, filename, DirDownload,ext):
             )
             for line in process.stdout:
                 line = str(line)
+
                 try:
                     if 'Duration' in line:
                         duration = re.findall(r':\s(.*?)\,', line)
@@ -38,25 +42,30 @@ def use_ffmpeg(url, filename, DirDownload,ext):
                         m = int(duration[0][3:5])
                         s = int(duration[0][6:8])
                         x = h + m / 60 + s / 60 / 60
-                    if 'frame' in line:
+                    if re.findall(r'time=(.*?)\s', line):
                         time = re.findall(r'time=(.*?)\s', line)
                         hh = int(time[0][0:2])
                         mm = int(time[0][3:5])
                         ss = int(time[0][6:8])
                         y = hh + mm / 60 + ss / 60 / 60
                         percent = int((y / x) * bar_length)
-                        sys.stdout.write(fg + sb + '\r[' + fc + '*' + fg + f'''] : Duration: {duration[0]} ╢{fc + percent * "#" }{fg + (bar_length-percent) * "-"}╟ {round((y / x) * 100, 2)} % Time: {time[0]}        ''')
+                        sys.stdout.write(
+                            fg + sb + '\r[' + fc + '*' + fg + f'''] : Duration: {duration[0]} ╢{fc + percent * "#"}{fg + (bar_length - percent) * "-"}╟ {round((y / x) * 100, 2)} % Time: {time[0]}        ''')
                         sys.stdout.flush()
                     if line.startswith('video:'):
                         y = x
                         percent = int((y / x) * bar_length)
-                        sys.stdout.write(fg + sb + '\r[' + fc + '*' + fg + f'''] : Duration: {duration[0]} ╢{fc + percent * "#"}{fg + (bar_length - percent) * "-"}╟ 100 % Time: {duration[0]}        ''')
+                        sys.stdout.write(
+                            fg + sb + '\r[' + fc + '*' + fg + f'''] : Duration: {duration[0]} ╢{fc + percent * "#"}{fg + (bar_length - percent) * "-"}╟ 100 % Time: {duration[0]}        ''')
                         sys.stdout.flush()
                 except Exception as e:
                     pass
             sys.stdout.write("\n")
+        except FileNotFoundError:
+            to_screen("This url need ffmpeg\n\tPls download and setup ffmpeg https://www.ffmpeg.org")
+            sys.exit()
         except KeyboardInterrupt:
-            dir = r'{}\{}.{}'.format(DirDownload, filename,ext)
+            dir = r'{}\{}.{}'.format(DirDownload, filename, ext)
             if os.path.exists(path=dir):
                 if os.path.isfile(dir):
                     os.remove(dir)
@@ -94,7 +103,7 @@ class Download_HLS(ProgressBar):
         self.url_key = re.findall(r'URI=\"(.*?)\"', str(r.text))
         if self.url_key:
             self.url_key = self.url_key[0]
-            string = string.replace(self.url_key,'temp.key')
+            string = string.replace(self.url_key, 'temp.key')
         self.lst_ts = re.findall(r'#EXTINF:(.*?)\,\n(.*?)\n', str(r.text))
         l = list(map(float, [i[0] for i in self.lst_ts]))
         self.sum_duration = sum(l)
@@ -103,13 +112,13 @@ class Download_HLS(ProgressBar):
                 url_ts = urljoin(self.urlM3u8, ts)
                 temp_ts = 'temp%s.ts' % index
                 self.lst_ts[index] = [duration_ts, url_ts, temp_ts]
-                string = string.replace(url_ts,temp_ts)
+                string = string.replace(url_ts, temp_ts)
         self.allow_file = '%s/hls.txt' % (self.temp_path)
-        with io.open(self.allow_file,'w') as f:
+        with io.open(self.allow_file, 'w') as f:
             f.write(string)
 
-    def write_data(self,data,name):
-        with io.open('%s/%s' % (self.temp_path,name),'wb') as f:
+    def write_data(self, data, name):
+        with io.open('%s/%s' % (self.temp_path, name), 'wb') as f:
             f.write(data)
         return
 
@@ -117,7 +126,7 @@ class Download_HLS(ProgressBar):
         if self.url_key:
             r = self.session.get(self.url_key, headers=self.headers)
             self.key = r.content
-            self.write_data(data=self.key,name='temp.key')
+            self.write_data(data=self.key, name='temp.key')
         self.l = len(self.lst_ts)
         thread = int(self.l ** (1 / 4))
         p = Pool(1)
@@ -131,7 +140,6 @@ class Download_HLS(ProgressBar):
             self.spinner(text=text)
         sys.stdout.write(fg + '\r[' + fr + '-' + fg + '] : Merge video [ %s ] ... (done)\n' % (self.name))
         shutil.rmtree(self.temp_path)
-
 
     def get_info_for_progress_bar(self, end, first, is_malformed, time_run=float()):
         if time_run:
@@ -194,5 +202,5 @@ class Download_HLS(ProgressBar):
                 progress_stats = (self.d_ts, self.d_ts * 1.0 / self.sum_duration, rate, eta, self.ver, self.d_ts)
                 self.show_progress(self.sum_duration, *progress_stats)
             temp = r.content
-        self.write_data(data=temp,name=name_ts)
+        self.write_data(data=temp, name=name_ts)
         return
