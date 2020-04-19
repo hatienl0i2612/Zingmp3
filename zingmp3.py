@@ -421,9 +421,9 @@ class Zingmp3_vnUser(Zingmp3_vnPlaylist):
         ((?:http[s]?|fpt):)\/?\/(?:www\.|m\.|)
         (?P<site>
             (zingmp3\.vn)
-        )\/(?P<nghe_si>(?:nghe-si\/|))(?P<name>.*?)
+        )\/(?P<nghe_si>(?!bai-hat|video-clip|embed|album|playlist|chu-de|zing-chart|top-new-release|zing-chart-tuan)(?:nghe-si\/|))(?P<name>.*?)
         (?:$|\/)
-        (?P<slug_name>(?:bai-hat|album|video|playlist))$
+        (?P<slug_name>(?:bai-hat|album|video|playlist|))$
             '''
 
     def __init__(self, *args, **kwargs):
@@ -438,7 +438,7 @@ class Zingmp3_vnUser(Zingmp3_vnPlaylist):
     def run_user(self, url):
         mobj = re.search(self._regex_user, url)
         name = mobj.group('name')
-        slug_name = mobj.group('slug_name')
+        slug_name = mobj.group('slug_name') or "bai-hat"
         nghe_si = mobj.group('nghe_si')
 
         name_api = self.list_name_api_user.get(slug_name) or None
