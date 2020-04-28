@@ -86,9 +86,13 @@ Options:
 ***If you want to use your account VIP to download quality list 320 or lossless***
 
 ***1. Download extension from chrome store [`cookies.txt`](https://chrome.google.com/webstore/detail/cookiestxt/njabckikapfpffapmjgojcnbfjonfjfg)***
+
 ***2. Go to page [`zingmp3`](https://zingmp3.vn/)***
+
 ***3. Click to icon cookies.txt just download***
+
 ***4. Click to `click here` and save file cookies.txt***
+
 ***5. Get cookies.txt then put it to them same path with tool, then run***
 
 ***Sometime cookies will die, Pls follow the steps above to update the new cookies.***
@@ -97,26 +101,6 @@ Options:
 
 
 ## ***Usage***
-```
-$ python zingmp3.py -h
-usage: zingmp3.py [-h] [-c] [-s] [-j] [-l] url
-
-Zingmp3 - A tool crawl data from zingmp3.vn
-
-positional arguments:
-  url             Url.
-
-optional arguments:
-  -h, --help      show this help message and exit
-
-Authentication:
-  -c , --cookie   Cookies for authenticate with.
-
-Options:
-  -s , --save     Path to save
-  -j, --json      Show json of info media.
-  -l, --lyric     Download only lyric.
-```
 
 - ***Install module***
   ```
