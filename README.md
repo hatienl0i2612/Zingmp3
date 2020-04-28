@@ -1,7 +1,27 @@
 # ***Zingmp3***
 ***Zingmp3 - A tool crawl data from [`zingmp3.vn`](https://zingmp3.vn/).***
 
-[![Capture.png](https://i.postimg.cc/5tm0NNkk/Capture.png)](https://postimg.cc/Ny5YdYt1)
+```
+$ python zingmp3.py -h
+usage: zingmp3.py [-h] [-c] [-s] [-j] [-l] url
+
+Zingmp3 - A tool crawl data from zingmp3.vn
+
+positional arguments:
+  url             Url.
+
+optional arguments:
+  -h, --help      show this help message and exit
+
+Authentication:
+  -c , --cookie   Cookies for authenticate with.
+
+Options:
+  -s , --save     Path to save
+  -j, --json      Show json of info media.
+  -l, --lyric     Download only lyric.
+```
+
 
 ## ***Installation***
 - **Language**: Python3.x
@@ -34,6 +54,7 @@
   https://zingmp3.vn/playlist/.../<id>.html
   https://zingmp3.vn/album/.../<id>.html
   https://zingmp3.vn/embed/.../<id>.html
+  https://zingmp3.vn/the-loai-video/<slug>/<id>.html
   ```
 - ***url artist's profile type 1***
   ```
@@ -62,17 +83,17 @@
   ```
  
 ## ***How to get cookies.txt for login***
-If you want to use your account VIP to download quality list 320 or lossless
+***If you want to use your account VIP to download quality list 320 or lossless***
 
-1. Download extension from chrome store [`cookies.txt`](https://chrome.google.com/webstore/detail/cookiestxt/njabckikapfpffapmjgojcnbfjonfjfg)
-2. Go to page [`zingmp3`](https://zingmp3.vn/)
-3. Click to icon cookies.txt just download
-4. Click to `click here` and save file cookies.txt
-5. Get cookies.txt then put it to them same path with tool, then run
+***1. Download extension from chrome store [`cookies.txt`](https://chrome.google.com/webstore/detail/cookiestxt/njabckikapfpffapmjgojcnbfjonfjfg)***
+***2. Go to page [`zingmp3`](https://zingmp3.vn/)***
+***3. Click to icon cookies.txt just download***
+***4. Click to `click here` and save file cookies.txt***
+***5. Get cookies.txt then put it to them same path with tool, then run***
 
-Sometime cookies will die, Pls follow the steps above to update the new cookies.
+***Sometime cookies will die, Pls follow the steps above to update the new cookies.***
 
-If you don't set cookies, tool will download default quality like 128 ...
+***If you don't set cookies, tool will download default quality like 128 ...***
 
 
 ## ***Usage***
@@ -80,7 +101,7 @@ If you don't set cookies, tool will download default quality like 128 ...
 $ python zingmp3.py -h
 usage: zingmp3.py [-h] [-c] [-s] [-j] [-l] url
 
-Zingmp3 - A tool crawl data from zingmp3.vn .
+Zingmp3 - A tool crawl data from zingmp3.vn
 
 positional arguments:
   url             Url.

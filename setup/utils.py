@@ -6,7 +6,7 @@ ACCENT_CHARS = dict(zip('ÂÃÄÀÁÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖŐØŒÙ�
 
 session = requests.Session()
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.97 Safari/537.36',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.170 Safari/537.36',
 }
 KNOWN_EXTENSIONS = [
     'mp4', 'm4a', 'm4p', 'm4b', 'm4r', 'm4v', 'aac',

@@ -1,4 +1,4 @@
-from .progress_bar import *
+from .utils import *
 
 
 class ConnectionError(RequestException):
@@ -6,7 +6,7 @@ class ConnectionError(RequestException):
 
 
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.97 Safari/537.36',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.170 Safari/537.36',
     'Accept': '*/*',
     'Accept-Language': 'en-US,en;q=0.5',
     'Accept-Encoding': 'gzip, deflate, br',
@@ -63,14 +63,12 @@ class Downloader(object):
         if filepath and filepath.endswith('.vtt'):
             filepath_vtt2srt = filepath.replace('.vtt', '.srt')
             if os.path.isfile(filepath_vtt2srt):
-                retVal = {"status": True, "msg": "already downloaded"}
-                sys.stdout.write(fg + '[' + fr + '-' + fg + '] : %s\n' % (retVal['msg']))
-                return retVal
+                to_screen("already downloaded")
+                return 
 
         if os.path.isfile(filepath):
-            retVal = {"status": True, "msg": "already downloaded"}
-            sys.stdout.write(fg + '[' + fr + '-' + fg + '] : %s\n' % (retVal['msg']))
-            return retVal
+            to_screen("already downloaded")
+            return 
 
         temp_filepath = filepath + ".part"
 
@@ -99,9 +97,8 @@ class Downloader(object):
             try:
                 response = self._sess.get(self.url, headers=headers, stream=True, timeout=10)
             except ConnectionError as error:
-                retVal = {'status': False, 'msg': 'ConnectionError: %s' % (str(error))}
-                sys.stdout.write(fg + '[' + fr + '-' + fg + '] : %s\n' % (retVal['msg']))
-                return retVal
+                to_screen('ConnectionError: %s' % (str(error)))
+                return 
             with response:
                 if response.ok:
                     bytes_to_be_downloaded = total = int(response.headers.get('Content-Length'))
@@ -126,9 +123,7 @@ class Downloader(object):
                                         os.unlink(temp_filepath)
                                     except Exception:
                                         pass
-                                    retVal = {"status": False,
-                                              "msg": "ZeroDivisionError : it seems, file has malfunction or is zero byte(s) .."}
-                                    sys.stdout.write(fg + '[' + fr + '-' + fg + '] : %s\n' % (retVal['msg']))
+                                    to_screen("ZeroDivisionError : it seems, file has malfunction or is zero byte(s) ..")
                                     break
                             else:
                                 rate = 0
@@ -137,30 +132,18 @@ class Downloader(object):
                             if not is_malformed:
                                 progress_stats = (
                                     bytesdone, bytesdone * 1.0 / total, rate, eta)
-
-                                # if not quiet:
-                                #     status = status_string.format(*progress_stats)
-                                #     sys.stdout.write(
-                                #         "\r" + status + ' ' * 4 + "\r")
-                                #     sys.stdout.flush()
-
                                 if callback:
                                     callback(total, *progress_stats)
                 if not response.ok:
                     code = response.status_code
                     reason = response.reason
-                    retVal = {
-                        "status": False, "msg": "Error returned HTTP Code %s: %s" % (code, reason)}
-                    sys.stdout.write(fg + '[' + fr + '-' + fg + '] : %s\n' % (retVal['msg']))
+                    to_screen("Error returned HTTP Code %s: %s" % (code, reason))
 
         except KeyboardInterrupt as error:
             raise error
         except Exception as error:
-            retVal = {"status": False,
-                      "msg": "Reason : {}".format(str(error))}
-            sys.stdout.write(fg + '[' + fr + '-' + fg + '] : %s\n' % (retVal['msg']))
-
-            return retVal
+            to_screen("Reason : {}".format(str(error)))
+            return 
         if os.path.isfile(temp_filepath):
             total_bytes_done = os.stat(temp_filepath).st_size
             if total_bytes_done == bytes_to_be_downloaded:
@@ -175,4 +158,4 @@ class Downloader(object):
             os.rename(temp_filepath, filepath)
             retVal = {"status": True, "msg": "download"}
         sys.stdout.write("\n")
-        return retVal
+        return 

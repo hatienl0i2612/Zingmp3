@@ -40,6 +40,45 @@ class authentication():
 
 
 class Zingmp3_vn(ProgressBar):
+
+    LIST_TEST = '''
+https://zingmp3.vn/Mr-Siro/bai-hat
+
+https://zingmp3.vn/Mr-Siro/playlist
+
+https://zingmp3.vn/Mr-Siro/video
+
+https://zingmp3.vn/nghe-si/Huong-Giang-Idol/bai-hat
+
+https://zingmp3.vn/nghe-si/Huong-Giang-Idol/album
+
+https://zingmp3.vn/nghe-si/Huong-Giang-Idol/video
+
+https://zingmp3.vn/top-new-release/index.html
+
+https://zingmp3.vn/zing-chart/bai-hat.html
+
+https://zingmp3.vn/zing-chart-tuan/video-US-UK/IWZ9Z0BU.html
+
+https://zingmp3.vn/zing-chart-tuan/bai-hat-US-UK/IWZ9Z0BW.html
+
+https://zingmp3.vn/album/Khoc-Cung-Em-Single-Mr-Siro-Gray-Wind/ZF90UA9I.html
+
+https://zingmp3.vn/playlist/Sofm-s-playlist/IWE606EA.html
+
+https://zingmp3.vn/chu-de/Nhac-Hot/IWZ9Z0C8.html
+
+https://zingmp3.vn/the-loai-video/Nhac-Tre/IWZ9Z088.html
+
+https://zingmp3.vn/video-clip/Tim-Ve-Loi-Ru-New-Version-Thanh-Hung-Various-Artists/ZW6ZOIZ7.html
+
+https://zingmp3.vn/video-clip/Yeu-Nhieu-Ghen-Nhieu-Thanh-Hung/ZWB087B9.html
+
+https://zingmp3.vn/bai-hat/Khoc-Cung-Em-Mr-Siro-Gray-Wind/ZWBI0DFI.html
+
+https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
+'''
+
     _regex_url = r'''(?x)^
         ((?:http[s]?|fpt):)\/?\/(?:www\.|m\.|)
         (?P<site>
@@ -54,7 +93,6 @@ class Zingmp3_vn(ProgressBar):
         self._path_save = kwargs.get("path_save") or os.getcwd()
         self._show_json_info = kwargs.get("show_json_info")
         self._down_lyric = kwargs.get("down_lyric")
-        self._quality = kwargs.get("quality")
 
     def run(self, url):
         mobj = re.search(self._regex_url, url)
@@ -76,7 +114,7 @@ class Zingmp3_vn(ProgressBar):
             name_api = "/video/get-video-detail"
 
         api = self.get_api_with_signature(name_api=name_api, video_id=video_id)
-        info = get_req(url=api, headers=self._headers, type='json',note="Downloading json from %s." % video_id)
+        info = get_req(url=api, headers=self._headers, type='json',note="Downloading json from %s" % video_id)
         if _type == 'video-clip' and not self._is_login:
             # TODO: Have api can get best quality like 1080p, 720p, default if dont have VIP just 480p is best quality.
             #  If requests are continuous without downtime,
@@ -304,17 +342,19 @@ class Zingmp3_vn(ProgressBar):
 
 
 class Zingmp3_vnPlaylist(Zingmp3_vn):
+
     _regex_playlist = r'''(?x)^
             ((?:http[s]?|fpt):)\/?\/(?:www\.|m\.|)
                 (?P<site>
                     (zingmp3\.vn)
-                )\/(?P<type>(?:album|playlist|chu-de))\/(?P<slug>.*?)\/(?P<playlist_id>.*?)\W
+                )\/(?P<type>(?:album|playlist|chu-de|the-loai-video))\/(?P<slug>.*?)\/(?P<playlist_id>.*?)\W
                 '''
 
     def __init__(self, *args, **kwargs):
         super(Zingmp3_vnPlaylist, self).__init__(*args, **kwargs)
         self.name_api_album_or_playlist = '/playlist/get-playlist-detail'
         self.name_api_topic = "/topic/get-detail"
+        self.name_api_the_loai_video = "/video/get-list"
 
     def run_playlist(self, url):
         mobj = re.search(self._regex_playlist, url)
@@ -323,7 +363,41 @@ class Zingmp3_vnPlaylist(Zingmp3_vn):
         slug = mobj.group('slug')
         if _type == 'chu-de':
             return self._entries_for_chu_de(id_chu_de=playlist_id)
+        elif _type == "the-loai-video":
+            return self._entries_for_the_loai_video(id_the_loai_video = playlist_id,slug = slug)
         return self._extract_playlist(id_playlist=playlist_id)
+
+    def _entries_for_the_loai_video(self,id_the_loai_video,slug):
+        to_screen("the-loai-video  %s  %s" % (slug,id_the_loai_video))
+        api = self.get_api_with_signature(name_api=self.name_api_the_loai_video,video_id=id_the_loai_video)
+        start = 0
+        count = 30
+        while True:
+            info = get_req(url=api,headers=self._headers,type="json",params={
+                "type":"genre",
+                "sort":"listen",
+                "start":start,
+                "count":count,
+            })
+            if info.get("msg").lower() != "success":
+                break
+            items = try_get(info,lambda x: x["data"]["items"],list) or []
+            if not items:
+                break
+            for item in items:
+                if not item:
+                    continue
+                url = urljoin(self._default_host,item.get("link"))
+                if 'album' in url or 'playlist' in url:
+                    self.run_playlist(url)
+                else:
+                    self.run(url)
+            total = is_int(try_get(info, lambda x: x['data']['total'], int)) or -1
+            start += count
+
+            if total <= start:
+                break
+
 
     def _entries_for_chu_de(self, id_chu_de):
         api = self.get_api_with_signature(name_api=self.name_api_topic, video_id=id_chu_de)
@@ -355,6 +429,7 @@ class Zingmp3_vnPlaylist(Zingmp3_vn):
 
 
 class Zingmp3_vnChart(Zingmp3_vn):
+
     _regex_chart = r'''(?x)^
             ((?:http[s]?|fpt):)\/?\/(?:www\.|m\.|)
             (?P<site>
@@ -417,11 +492,12 @@ class Zingmp3_vnChart(Zingmp3_vn):
 
 
 class Zingmp3_vnUser(Zingmp3_vnPlaylist):
+
     _regex_user = r'''(?x)^
         ((?:http[s]?|fpt):)\/?\/(?:www\.|m\.|)
         (?P<site>
             (zingmp3\.vn)
-        )\/(?P<nghe_si>(?!bai-hat|video-clip|embed|album|playlist|chu-de|zing-chart|top-new-release|zing-chart-tuan)(?:nghe-si\/|))(?P<name>.*?)
+        )\/(?P<nghe_si>(?!bai-hat|video-clip|embed|album|playlist|chu-de|zing-chart|top-new-release|zing-chart-tuan|the-loai-video)(?:nghe-si\/|))(?P<name>.*?)
         (?:$|\/)
         (?P<slug_name>(?:bai-hat|album|video|playlist|))$
             '''
@@ -469,6 +545,8 @@ class Zingmp3_vnUser(Zingmp3_vnPlaylist):
             if info.get('msg').lower() != "success":
                 break
             items = try_get(info, lambda x: x['data']['items'], list) or []
+            if not items:
+                break
             for item in items:
                 if not item:
                     continue
@@ -489,6 +567,9 @@ class Base():
         tm = Zingmp3_vn(*args, **kwargs)
         url = kwargs.get("url")
 
+        if "mp3.zing.vn" in url.lower():
+            url = url.replace("mp3.zing.vn","zingmp3.vn")
+
         if re.match(tm._regex_url, url):
             tm.run(url)
 
@@ -506,7 +587,7 @@ class Base():
 
 
 def main(argv):
-    parser = argparse.ArgumentParser(description='Zingmp3 - A tool crawl data from zingmp3.vn .')
+    parser = argparse.ArgumentParser(description='Zingmp3 - A tool crawl data from zingmp3.vn')
     parser.add_argument('url', type=str, help='Url.')
 
     authen = parser.add_argument_group('Authentication')
