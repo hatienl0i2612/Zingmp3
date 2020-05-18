@@ -55,6 +55,7 @@ Options:
   https://zingmp3.vn/album/.../<id>.html
   https://zingmp3.vn/embed/.../<id>.html
   https://zingmp3.vn/the-loai-video/<slug>/<id>.html
+  https://zingmp3.vn/the-loai-album/<slug>/<id>.html
   ```
 - ***url artist's profile type 1***
   ```

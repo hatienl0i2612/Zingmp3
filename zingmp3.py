@@ -70,6 +70,8 @@ https://zingmp3.vn/chu-de/Nhac-Hot/IWZ9Z0C8.html
 
 https://zingmp3.vn/the-loai-video/Nhac-Tre/IWZ9Z088.html
 
+https://zingmp3.vn/the-loai-album/Rap-Hip-Hop/IWZ9Z09B.html
+
 https://zingmp3.vn/video-clip/Tim-Ve-Loi-Ru-New-Version-Thanh-Hung-Various-Artists/ZW6ZOIZ7.html
 
 https://zingmp3.vn/video-clip/Yeu-Nhieu-Ghen-Nhieu-Thanh-Hung/ZWB087B9.html
@@ -144,7 +146,7 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
         if info.get('msg') == 'Success':
             data = info.get('data')
             title = data.get('title')
-            to_screen(title)
+            to_screen("Bài hát : %s" %title)
             streaming = data.get('streaming')
             lyric = data.get('lyric') or try_get(data, lambda x: x['lyrics'][0]['content'], str)
 
@@ -347,7 +349,7 @@ class Zingmp3_vnPlaylist(Zingmp3_vn):
             ((?:http[s]?|fpt):)\/?\/(?:www\.|m\.|)
                 (?P<site>
                     (zingmp3\.vn)
-                )\/(?P<type>(?:album|playlist|chu-de|the-loai-video))\/(?P<slug>.*?)\/(?P<playlist_id>.*?)\W
+                )\/(?P<type>(?:album|playlist|chu-de|the-loai-video|the-loai-album))\/(?P<slug>.*?)\/(?P<playlist_id>.*?)\W
                 '''
 
     def __init__(self, *args, **kwargs):
@@ -355,6 +357,7 @@ class Zingmp3_vnPlaylist(Zingmp3_vn):
         self.name_api_album_or_playlist = '/playlist/get-playlist-detail'
         self.name_api_topic = "/topic/get-detail"
         self.name_api_the_loai_video = "/video/get-list"
+        self.name_api_the_loai_album = "/playlist/get-list"
 
     def run_playlist(self, url):
         mobj = re.search(self._regex_playlist, url)
@@ -365,10 +368,44 @@ class Zingmp3_vnPlaylist(Zingmp3_vn):
             return self._entries_for_chu_de(id_chu_de=playlist_id)
         elif _type == "the-loai-video":
             return self._entries_for_the_loai_video(id_the_loai_video = playlist_id,slug = slug)
+        elif _type == "the-loai-album":
+            return self._entries_for_the_loai_album(id_the_loai_album = playlist_id,slug = slug)
         return self._extract_playlist(id_playlist=playlist_id)
 
+    def _entries_for_the_loai_album(self,id_the_loai_album,slug):
+        to_screen("the-loai-album :  %s  %s" % (slug,id_the_loai_album))
+        api = self.get_api_with_signature(name_api=self.name_api_the_loai_album,video_id=id_the_loai_album)
+        start = 0
+        count = 30
+        while True:
+            info = get_req(url=api,headers=self._headers,type="json",params={
+                "type":"genre_album",
+                "sort":"listen",
+                "start":start,
+                "count":count,
+            })
+            if info.get("msg").lower() != "success":
+                break
+            items = try_get(info,lambda x: x["data"]["items"],list) or []
+            if not items:
+                break
+            for item in items:
+                if not item:
+                    continue
+                url = urljoin(self._default_host,item.get("link"))
+                if 'album' in url or 'playlist' in url:
+                    self.run_playlist(url)
+                else:
+                    self.run(url)
+            total = is_int(try_get(info, lambda x: x['data']['total'], int)) or -1
+            start += count
+
+            if total <= start:
+                break
+
+
     def _entries_for_the_loai_video(self,id_the_loai_video,slug):
-        to_screen("the-loai-video  %s  %s" % (slug,id_the_loai_video))
+        to_screen("the-loai-video :  %s  %s" % (slug,id_the_loai_video))
         api = self.get_api_with_signature(name_api=self.name_api_the_loai_video,video_id=id_the_loai_video)
         start = 0
         count = 30
@@ -402,11 +439,12 @@ class Zingmp3_vnPlaylist(Zingmp3_vn):
     def _entries_for_chu_de(self, id_chu_de):
         api = self.get_api_with_signature(name_api=self.name_api_topic, video_id=id_chu_de)
         info = get_req(url=api, headers=self._headers, type='json')
-        if info.get('msg') != "Success":
+        if info.get('msg').lower() != "success":
+            to_screen("Can not find data, something was wrong, pls check url again.")
             return
         title_chu_de = try_get(info, lambda x: x['data']["info"]["title"])
         items = try_get(info, lambda x: x['data']['playlist']['items'], list) or []
-        to_screen(f"Chủ đề {title_chu_de}")
+        to_screen(f"Chủ đề : {title_chu_de}")
         for item in items:
             if not item:
                 continue
@@ -420,7 +458,7 @@ class Zingmp3_vnPlaylist(Zingmp3_vn):
         info = get_req(url=api, headers=self._headers, type="json")
         title_playlist = try_get(info, lambda x: x['data']['title'], str) or ''
         items = try_get(info, lambda x: x['data']['song']['items'], list) or []
-        to_screen(f"Playlist {title_playlist}")
+        to_screen(f"Playlist : {title_playlist}")
         for item in items:
             if not item:
                 continue
@@ -460,6 +498,8 @@ class Zingmp3_vnChart(Zingmp3_vn):
         name = mobj.group('name')
         slug_name = mobj.group('slug_name')
 
+        to_screen("#%s : %s" % (name,slug_name))
+
         if name == 'zing-chart':
             api = self.get_api_with_signature(
                 name_api=self.list_name_api.get(name).get('name'),
@@ -497,7 +537,7 @@ class Zingmp3_vnUser(Zingmp3_vnPlaylist):
         ((?:http[s]?|fpt):)\/?\/(?:www\.|m\.|)
         (?P<site>
             (zingmp3\.vn)
-        )\/(?P<nghe_si>(?!bai-hat|video-clip|embed|album|playlist|chu-de|zing-chart|top-new-release|zing-chart-tuan|the-loai-video)(?:nghe-si\/|))(?P<name>.*?)
+        )\/(?P<nghe_si>(?!bai-hat|video-clip|embed|album|playlist|chu-de|zing-chart|top-new-release|zing-chart-tuan|the-loai-video|the-loai-album)(?:nghe-si\/|))(?P<name>.*?)
         (?:$|\/)
         (?P<slug_name>(?:bai-hat|album|video|playlist|))$
             '''
