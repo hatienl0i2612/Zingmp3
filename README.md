@@ -31,12 +31,6 @@ Options:
   pip install -r requirements.txt
   ``` 
 
-## ***exe version***
-- [`driver`](https://drive.google.com/file/d/1BMbwAjXJP_VB-M6N81OVgat3w79lCLyU/view) or [`mediafire`](https://www.mediafire.com/file/l51hoj6n4qy2baw/zingmp3.rar/file)
-
-[![Capture.png](https://i.postimg.cc/0y138xD6/Capture.png)](https://postimg.cc/D855g9CF)
-
-
 ## ***Options***
 - ***`-c` or `--cookie`: Add cookies to auth***
 - ***`-j` or `json` : Show json of info media.***
