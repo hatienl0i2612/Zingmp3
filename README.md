@@ -3,7 +3,7 @@
 
 ```
 $ python zingmp3.py -h
-usage: zingmp3.py [-h] [-c] [-s] [-j] [-l] url
+usage: zingmp3.py [-h] [-c] [-s] [-j] [-l] [--add-index] url
 
 Zingmp3 - A tool crawl data from zingmp3.vn
 
@@ -20,6 +20,7 @@ Options:
   -s , --save     Path to save
   -j, --json      Show json of info media.
   -l, --lyric     Download only lyric.
+  --add-index     Add index of playlist.
 ```
 
 
