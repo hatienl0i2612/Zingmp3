@@ -33,9 +33,10 @@ Options:
 
 ## ***Options***
 - ***`-c` or `--cookie`: Add cookies to auth***
-- ***`-j` or `json` : Show json of info media.***
+- ***`-j` or `--json` : Show json of info media.***
 - ***`-s` or `--save` : Path to save file downloaded.***
 - ***`-l` or `--lyric` : Download with lyric.***
+- ***`--add-index` : Add index of playlist for title.***
 - ***Default will download all media and lyric.***
 - ***All the example in Usage.***
 - ***Some url is hls, need setup [ffmpeg](https://www.ffmpeg.org/)***

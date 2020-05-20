@@ -95,6 +95,12 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
         self._path_save = kwargs.get("path_save") or os.getcwd()
         self._show_json_info = kwargs.get("show_json_info")
         self._down_lyric = kwargs.get("down_lyric")
+        self._add_index = kwargs.get('add_index')
+
+        if self._add_index:
+            self._index_media = 1
+        else:
+            self._index_media = -1
 
     def run(self, url):
         mobj = re.search(self._regex_url, url)
@@ -176,6 +182,10 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
                 return lyric
 
         formats = []
+        title = removeCharacter_filename(title)
+        if self._index_media != -1:
+            title = "%s - %s" % (self._index_media,title)
+            self._index_media += 1
         if _type == 'video-clip':
 
             for protocol, stream in stream_data.items():
@@ -226,7 +236,6 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
                         })
         will_down = formats[-1]
         protocol = will_down.get("protocol")
-        title = removeCharacter_filename(title)
         if protocol == "http":
             down = Downloader(url=will_down.get('url'))
             down.download(
@@ -640,6 +649,7 @@ def main(argv):
                       dest='show_json_info')
     opts.add_argument('-l', '--lyric', default=False, action='store_true', help='Download only lyric.',
                       dest='down_lyric')
+    opts.add_argument("--add-index",default=False,action="store_true",help="Add index of playlist.",dest="add_index")
 
     args = parser.parse_args()
     status_auth = False
@@ -656,6 +666,7 @@ def main(argv):
         show_json_info=args.show_json_info,
         down_lyric=args.down_lyric,
         is_login=status_auth,
+        add_index = args.add_index,
     )
 
 
