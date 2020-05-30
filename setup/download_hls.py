@@ -9,7 +9,7 @@ class ConnectionError(RequestException):
 early_py_version = sys.version_info[:2] < (2, 7)
 
 
-def use_ffmpeg(url, filename, DirDownload, ext, new_cmd = ""):
+def use_ffmpeg(url, filename, DirDownload, ext):
     """
     - use ffmpeg to download with url and user_agent and convert them to .mp4 and put them to path download
     :param url: url m3u8 decripted in GetM3u8
