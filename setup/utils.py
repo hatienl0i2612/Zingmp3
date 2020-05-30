@@ -23,8 +23,16 @@ KNOWN_EXTENSIONS = [
     'wav',
     'f4f', 'f4m', 'm3u8', 'smil']
 
-def to_screen(text):
-    sys.stdout.write(fg + sb + '[' + fc + '*' + fg + '] : %s\n' % text)
+def to_screen(text,line = True,status = "success"):
+    if line:
+        if status == "success":
+            sys.stdout.write(fg + sb + '[' + fc + '*' + fg + '] : %s\n' % text)
+        elif status == 'error':
+            sys.stdout.write(fr + sb + '[' + fc + '*' + fr + '] Error : %s\n' % text)
+        elif status == "warning":
+            sys.stdout.write(fy + sb + '[' + fc + '*' + fy + '] Warning : %s\n' % text)
+    else:
+        sys.stdout.write(fg + sb + '[' + fc + '*' + fg + '] : %s' % text)
 
 
 def duration_to_length(duration):
