@@ -33,8 +33,7 @@ class authentication():
         info = res.json()
         name = try_get(info, lambda x: x.get('data').get('info').get('name'))
         if not name:
-            sys.stdout.write(
-                fc + sd + "\n[" + fr + sb + "-" + fc + sd + "] : " + fr + sd + "Cookies die, pls try again.\n")
+            to_screen("Cookies die, pls try again.",status="error")
             sys.exit(0)
         return True
 
@@ -152,15 +151,15 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
         if info.get('msg') == 'Success':
             data = info.get('data')
             title = data.get('title')
-            to_screen("Bài hát : %s" %title)
             streaming = data.get('streaming')
+            thumbnail = data.get("thumbnail_medium") or data.get("thumbnail")
             lyric = data.get('lyric') or try_get(data, lambda x: x['lyrics'][0]['content'], str)
 
-            self.start_download(streaming=streaming, _type=_type, title=title, lyric=lyric)
+            self.start_download(streaming=streaming, _type=_type, title=title, lyric=lyric, thumbnail = thumbnail)
         else:
             to_screen("Error can not find media data.")
 
-    def start_download(self, streaming, _type, title, lyric):
+    def start_download(self, streaming, _type, title, lyric, thumbnail):
         stream_data = streaming.get('data', dict)
         DirDownload = os.path.join(os.getcwd(), "DOWNLOAD")
         if not os.path.exists(DirDownload):
@@ -176,8 +175,7 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
 
         def get_lyric(lyric):
             if is_url(lyric):
-                response = get_req(url=lyric, headers=self._headers)
-                lyric = response.text
+                lyric = get_req(url=lyric, headers=self._headers,type="text")
             if lyric:
                 return lyric
 
@@ -186,6 +184,7 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
         if self._index_media != -1:
             title = "%s - %s" % (self._index_media,title)
             self._index_media += 1
+        to_screen("Bài hát : %s" %title)
         if _type == 'video-clip':
 
             for protocol, stream in stream_data.items():
@@ -236,18 +235,21 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
                         })
         will_down = formats[-1]
         protocol = will_down.get("protocol")
+        _url = will_down.get('url')
+        _ext = will_down.get("ext")
+        outtmpl = os.path.join(DirDownload, "%s.%s" % (title,_ext))
         if protocol == "http":
-            down = Downloader(url=will_down.get('url'))
+            down = Downloader(url=_url)
             down.download(
-                filepath=os.path.join(DirDownload, "%s.%s" % (title, will_down.get("ext"))),
+                filepath=outtmpl,
                 callback=self.show_progress
             )
         elif protocol == 'hls':
             use_ffmpeg(
-                url=will_down.get("url"),
+                url=_url,
                 DirDownload=DirDownload,
                 filename=title,
-                ext=will_down.get("ext")
+                ext=_ext
             )
         if self._down_lyric:
             with io.open(os.path.join(DirDownload, "%s.lrc" % title), 'w', encoding='utf-8-sig') as f:
@@ -657,9 +659,9 @@ def main(argv):
         auth = authentication(path_cookies=args.path_cookie)
         status_auth = auth.auth_with_cookies()
         if status_auth:
-            sys.stdout.write(fg + '[' + fc + '*' + fg + '] : Login oke.\n')
+            to_screen("Login oke.")
         else:
-            sys.stdout.write(fg + '[' + fc + '*' + fg + '] : Login false.\n')
+            to_screen('Login false.',status="error")
     Base(
         url=args.url,
         path_save=args.path_save,

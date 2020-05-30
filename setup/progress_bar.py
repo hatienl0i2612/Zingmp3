@@ -19,7 +19,7 @@ class ProgressBar(object):
         else:
             if '0.00' not in rate:
                 sys.stdout.write(
-                    "\r{}{}[{}*{}] : Content-length : {} ╢{}{}{}╟ Speed : {} Percent : {} %\t".format(
+                    "\r{}{}[{}*{}] : Content-length : {}\t╢{}{}{}╟ Speed : {} Percent : {} %\t".format(
                         sb,fg,fc,fg,file_size,bar,fg,sb,rate, percents
                     )
                 )
