@@ -38,9 +38,11 @@ Options:
 - ***`-s` or `--save` : Path to save file downloaded.***
 - ***`-l` or `--lyric` : Download with lyric.***
 - ***`--add-index` : Add index of playlist for title.***
+- ***`--convert-mp3` : Convert the audio output to .mp3.***
 - ***Default will download all media and lyric.***
 - ***All the example in Usage.***
-- ***Some url is hls, need setup [ffmpeg](https://www.ffmpeg.org/)***
+- ***Some url is hls, need setup [ffmpeg](https://www.ffmpeg.org/download.html)***
+- ***After download file ffmpeg and put that file at the same folder with tool***
  
 ## ***All URL Supported***
 - ***url media***

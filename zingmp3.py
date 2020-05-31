@@ -95,6 +95,7 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
         self._show_json_info = kwargs.get("show_json_info")
         self._down_lyric = kwargs.get("down_lyric")
         self._add_index = kwargs.get('add_index')
+        self._convert_audio = kwargs.get("convert_audio")
 
         if self._add_index:
             self._index_media = 1
@@ -111,6 +112,7 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
         return self.extract_info_media(_type, slug, video_id)
 
     def extract_info_media(self, _type, slug, video_id):
+        sys.stdout.write("\n")
         name_api = ''
         if _type == 'bai-hat':
             name_api = '/song/get-song-info'
@@ -178,6 +180,19 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
                 lyric = get_req(url=lyric, headers=self._headers,type="text")
             if lyric:
                 return lyric
+        def down_lyric():
+            if self._down_lyric:
+                with io.open(os.path.join(DirDownload, "%s.lrc" % title), 'w', encoding='utf-8-sig') as f:
+                    str_lyric = get_lyric(lyric)
+                    if str_lyric:
+                        f.write(str_lyric)
+                        to_screen("Download lyric .... DONE.")
+                    else:
+                        to_screen("This media don't have lyric.")
+        def remove_temp_path(temp_output):
+            if os.path.exists(temp_output):
+                if os.path.isfile(temp_output):
+                    os.remove(temp_output)
 
         formats = []
         title = removeCharacter_filename(title)
@@ -237,29 +252,53 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
         protocol = will_down.get("protocol")
         _url = will_down.get('url')
         _ext = will_down.get("ext")
-        outtmpl = os.path.join(DirDownload, "%s.%s" % (title,_ext))
-        if protocol == "http":
-            down = Downloader(url=_url)
-            down.download(
-                filepath=outtmpl,
-                callback=self.show_progress
+        output_convert_mp3 = os.path.join(DirDownload, r"%s.mp3" % (title))
+        temp_output = os.path.join(DirDownload, r"%s.hatienl0i261299" % title)
+        outtmpl = os.path.join(DirDownload, r"%s.%s" % (title,_ext))
+        if self._convert_audio:
+            if not os.path.exists(output_convert_mp3):
+                down = Downloader(url = _url)
+                down.download(
+                    filepath=temp_output,
+                    callback=self.show_progress
+                )
+            else:
+                to_screen("Already downloaded")
+        else:
+            if not os.path.exists(outtmpl):
+                if protocol == "http":
+                    down = Downloader(url = _url)
+                    down.download(
+                        filepath=temp_output,
+                        callback=self.show_progress
+                    )
+                elif protocol == "hls":
+                    status = use_ffmpeg(
+                        cmd = '''ffmpeg -y -loglevel "repeat+info" -i "%s" -c copy -f mp4 "-bsf:a" aac_adtstoasc "%s"''' % (_url,temp_output),
+                        progress_bar=True,
+                        note="Download hls"
+                    )
+            else:
+                to_screen("Already downloaded")
+        if self._convert_audio and _ext == "flac":
+            temp_path_ffmpeg = os.path.join(DirDownload, r"%s.%s.hatienl0i261299" % (title,_ext))
+            status = use_ffmpeg(
+                cmd = '''ffmpeg -y -loglevel "repeat+info" -i "%s" -ab 320k -map_metadata 0 -id3v2_version 3 -f mp3 "%s"''' % (temp_output,temp_path_ffmpeg),
+                progress_bar = True,
+                note = ".flac to .mp3"
             )
-        elif protocol == 'hls':
-            use_ffmpeg(
-                url=_url,
-                DirDownload=DirDownload,
-                filename=title,
-                ext=_ext
-            )
-        if self._down_lyric:
-            with io.open(os.path.join(DirDownload, "%s.lrc" % title), 'w', encoding='utf-8-sig') as f:
-                str_lyric = get_lyric(lyric)
-                if str_lyric:
-                    f.write(str_lyric)
-                    to_screen("Download lyric .... DONE.")
-                else:
-                    to_screen("This media don't have lyric.")
-        sys.stdout.write("\n\n")
+            if os.path.exists(temp_path_ffmpeg):
+                if os.path.isfile(temp_path_ffmpeg):
+                    if not os.path.exists(output_convert_mp3):
+                        os.rename(temp_path_ffmpeg,output_convert_mp3)
+            remove_temp_path(temp_output)
+            down_lyric()
+            return
+        
+        if not os.path.exists(outtmpl):
+            os.rename(temp_output,outtmpl)
+        remove_temp_path(temp_output)
+        return
 
     def get_api_with_signature(self, name_api, video_id='', alias='', _type='', new_release=False):
         """
@@ -652,6 +691,7 @@ def main(argv):
     opts.add_argument('-l', '--lyric', default=False, action='store_true', help='Download only lyric.',
                       dest='down_lyric')
     opts.add_argument("--add-index",default=False,action="store_true",help="Add index of playlist.",dest="add_index")
+    opts.add_argument("--convert-mp3",default=False,action="store_true",help="Convert the audio output to .mp3",dest="convert_audio")
 
     args = parser.parse_args()
     status_auth = False
@@ -669,6 +709,7 @@ def main(argv):
         down_lyric=args.down_lyric,
         is_login=status_auth,
         add_index = args.add_index,
+        convert_audio = args.convert_audio
     )
 
 
@@ -683,3 +724,5 @@ if __name__ == '__main__':
         sys.stdout.write(
             fc + sd + "\n[" + fr + sb + "-" + fc + sd + "] : " + fr + sd + "User Interrupted..\n")
         sys.exit(0)
+    except Exception as e:
+        to_screen("Give that error for fix https://github.com/hatienl0i261299/Zingmp3/issues",status="error")
