@@ -177,7 +177,7 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
 
         def get_lyric(lyric):
             if is_url(lyric):
-                lyric = get_req(url=lyric, headers=self._headers,type="text")
+                lyric = session.get(url=lyric, headers=self._headers).text
             if lyric:
                 return lyric
         def down_lyric():
@@ -298,6 +298,7 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
         if not os.path.exists(outtmpl):
             os.rename(temp_output,outtmpl)
         remove_temp_path(temp_output)
+        down_lyric()
         return
 
     def get_api_with_signature(self, name_api, video_id='', alias='', _type='', new_release=False):
