@@ -23,7 +23,8 @@ KNOWN_EXTENSIONS = [
     'wav',
     'f4f', 'f4m', 'm3u8', 'smil']
 
-def to_screen(text,line = True,status = "success"):
+
+def to_screen(text, line=True, status="success"):
     if line:
         if status == "success":
             sys.stdout.write(fg + sb + '[' + fc + '*' + fg + '] : %s\n' % text)
@@ -406,22 +407,6 @@ def findAll_regex(pattern, string, index=0, text_find=None, all_data=False):
             return None
     else:
         return None
-
-
-KNOWN_EXTENSIONS = (
-    'mp4', 'm4a', 'm4p', 'm4b', 'm4r', 'm4v', 'aac',
-    'flv', 'f4v', 'f4a', 'f4b',
-    'webm', 'ogg', 'ogv', 'oga', 'ogx', 'spx', 'opus',
-    'mkv', 'mka', 'mk3d',
-    'avi', 'divx',
-    'mov',
-    'asf', 'wmv', 'wma',
-    '3gp', '3g2',
-    'mp3',
-    'flac',
-    'ape',
-    'wav',
-    'f4f', 'f4m', 'm3u8', 'smil')
 
 
 def dict_get(d, key_or_keys, default=None, skip_false_values=True):
