@@ -33,13 +33,12 @@ class authentication():
         info = res.json()
         name = try_get(info, lambda x: x.get('data').get('info').get('name'))
         if not name:
-            to_screen("Cookies die, pls try again.",status="error")
+            to_screen("Cookies die, pls try again.", status="error")
             sys.exit(0)
         return True
 
 
 class Zingmp3_vn(ProgressBar):
-
     LIST_TEST = '''
 https://zingmp3.vn/Mr-Siro/bai-hat
 
@@ -123,7 +122,7 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
             name_api = "/video/get-video-detail"
 
         api = self.get_api_with_signature(name_api=name_api, video_id=video_id)
-        info = get_req(url=api, headers=self._headers, type='json',note="Downloading json from %s" % video_id)
+        info = get_req(url=api, headers=self._headers, type='json', note="Downloading json from %s" % video_id)
         if _type == 'video-clip' and not self._is_login:
             # TODO: Have api can get best quality like 1080p, 720p, default if dont have VIP just 480p is best quality.
             #  If requests are continuous without downtime,
@@ -157,7 +156,7 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
             thumbnail = data.get("thumbnail_medium") or data.get("thumbnail")
             lyric = data.get('lyric') or try_get(data, lambda x: x['lyrics'][0]['content'], str)
 
-            self.start_download(streaming=streaming, _type=_type, title=title, lyric=lyric, thumbnail = thumbnail)
+            self.start_download(streaming=streaming, _type=_type, title=title, lyric=lyric, thumbnail=thumbnail)
         else:
             to_screen("Error can not find media data.")
 
@@ -180,6 +179,7 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
                 lyric = session.get(url=lyric, headers=self._headers).text
             if lyric:
                 return lyric
+
         def down_lyric():
             if self._down_lyric:
                 with io.open(os.path.join(DirDownload, "%s.lrc" % title), 'w', encoding='utf-8-sig') as f:
@@ -189,6 +189,7 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
                         to_screen("Download lyric .... DONE.")
                     else:
                         to_screen("This media don't have lyric.")
+
         def remove_temp_path(temp_output):
             if os.path.exists(temp_output):
                 if os.path.isfile(temp_output):
@@ -197,9 +198,9 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
         formats = []
         title = removeCharacter_filename(title)
         if self._index_media != -1:
-            title = "%s - %s" % (self._index_media,title)
+            title = "%s - %s" % (self._index_media, title)
             self._index_media += 1
-        to_screen("Bài hát : %s" %title)
+        to_screen("Bài hát : %s" % title)
         if _type == 'video-clip':
 
             for protocol, stream in stream_data.items():
@@ -254,10 +255,10 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
         _ext = will_down.get("ext")
         output_convert_mp3 = os.path.join(DirDownload, r"%s.mp3" % (title))
         temp_output = os.path.join(DirDownload, r"%s.hatienl0i261299" % title)
-        outtmpl = os.path.join(DirDownload, r"%s.%s" % (title,_ext))
+        outtmpl = os.path.join(DirDownload, r"%s.%s" % (title, _ext))
         if self._convert_audio:
             if not os.path.exists(output_convert_mp3):
-                down = Downloader(url = _url)
+                down = Downloader(url=_url)
                 down.download(
                     filepath=temp_output,
                     callback=self.show_progress
@@ -267,41 +268,43 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
         else:
             if not os.path.exists(outtmpl):
                 if protocol == "http":
-                    down = Downloader(url = _url)
+                    down = Downloader(url=_url)
                     down.download(
                         filepath=temp_output,
                         callback=self.show_progress
                     )
                 elif protocol == "hls":
                     status = use_ffmpeg(
-                        cmd = '''ffmpeg -y -loglevel "repeat+info" -i "%s" -c copy -f mp4 "-bsf:a" aac_adtstoasc "%s"''' % (_url,temp_output),
+                        cmd='''ffmpeg -y -loglevel "repeat+info" -i "%s" -c copy -f mp4 "-bsf:a" aac_adtstoasc "%s"''' % (
+                            _url, temp_output),
                         progress_bar=True,
                         note="Download hls"
                     )
             else:
                 to_screen("Already downloaded")
         if self._convert_audio and _ext == "flac":
-            temp_path_ffmpeg = os.path.join(DirDownload, r"%s.%s.hatienl0i261299" % (title,_ext))
+            temp_path_ffmpeg = os.path.join(DirDownload, r"%s.%s.hatienl0i261299" % (title, _ext))
             status = use_ffmpeg(
-                cmd = '''ffmpeg -y -loglevel "repeat+info" -i "%s" -ab 320k -map_metadata 0 -id3v2_version 3 -f mp3 "%s"''' % (temp_output,temp_path_ffmpeg),
-                progress_bar = True,
-                note = ".flac to .mp3"
+                cmd='''ffmpeg -y -loglevel "repeat+info" -i "%s" -ab 320k -map_metadata 0 -id3v2_version 3 -f mp3 "%s"''' % (
+                    temp_output, temp_path_ffmpeg),
+                progress_bar=True,
+                note=".flac to .mp3"
             )
             if os.path.exists(temp_path_ffmpeg):
                 if os.path.isfile(temp_path_ffmpeg):
                     if not os.path.exists(output_convert_mp3):
-                        os.rename(temp_path_ffmpeg,output_convert_mp3)
+                        os.rename(temp_path_ffmpeg, output_convert_mp3)
             remove_temp_path(temp_output)
             down_lyric()
             return
-        
+
         if not os.path.exists(outtmpl):
-            os.rename(temp_output,outtmpl)
+            os.rename(temp_output, outtmpl)
         remove_temp_path(temp_output)
         down_lyric()
         return
 
-    def get_api_with_signature(self, name_api, video_id='', alias='', _type='', new_release=False):
+    def get_api_with_signature(self, name_api, q_search='', video_id='', alias='', _type='', new_release=False):
         """
         - The api of this site has 1 param named sig => signature
         - It uses the hash function of the variables ctime, id, and name_api.
@@ -310,7 +313,7 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
         :param alias:
         :param name_api:
         :param video_id:
-        :param type:
+        :param _type:
         :param new_release:
         :return: api
         """
@@ -381,8 +384,24 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
             }
             return url + urlencode(data)
 
+        def get_api_search():
+            url = "https://zingmp3.vn/api%s?" % name_api
+            time = str(int(datetime.datetime.now().timestamp()))
+            sha256 = get_hash256(f"ctime={time}")
+
+            data = {
+                'ctime': time,
+                'api_key': API_KEY,
+                'q': q_search,
+                'sig': get_hmac512(r"%s%s" % (name_api, sha256))
+            }
+
+            return url + urlencode(data)
+
         if 'download' in name_api:
             return get_api_download(_id=video_id)
+        if q_search:
+            return get_api_search()
         if alias:
             return get_api_info_alias(alias)
         if video_id:
@@ -395,7 +414,6 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
 
 
 class Zingmp3_vnPlaylist(Zingmp3_vn):
-
     _regex_playlist = r'''(?x)^
             ((?:http[s]?|fpt):)\/?\/(?:www\.|m\.|)
                 (?P<site>
@@ -418,32 +436,32 @@ class Zingmp3_vnPlaylist(Zingmp3_vn):
         if _type == 'chu-de':
             return self._entries_for_chu_de(id_chu_de=playlist_id)
         elif _type == "the-loai-video":
-            return self._entries_for_the_loai_video(id_the_loai_video = playlist_id,slug = slug)
+            return self._entries_for_the_loai_video(id_the_loai_video=playlist_id, slug=slug)
         elif _type == "the-loai-album":
-            return self._entries_for_the_loai_album(id_the_loai_album = playlist_id,slug = slug)
+            return self._entries_for_the_loai_album(id_the_loai_album=playlist_id, slug=slug)
         return self._extract_playlist(id_playlist=playlist_id)
 
-    def _entries_for_the_loai_album(self,id_the_loai_album,slug):
-        to_screen("the-loai-album :  %s  %s" % (slug,id_the_loai_album))
-        api = self.get_api_with_signature(name_api=self.name_api_the_loai_album,video_id=id_the_loai_album)
+    def _entries_for_the_loai_album(self, id_the_loai_album, slug):
+        to_screen("the-loai-album :  %s  %s" % (slug, id_the_loai_album))
+        api = self.get_api_with_signature(name_api=self.name_api_the_loai_album, video_id=id_the_loai_album)
         start = 0
         count = 30
         while True:
-            info = get_req(url=api,headers=self._headers,type="json",params={
-                "type":"genre_album",
-                "sort":"listen",
-                "start":start,
-                "count":count,
+            info = get_req(url=api, headers=self._headers, type="json", params={
+                "type": "genre_album",
+                "sort": "listen",
+                "start": start,
+                "count": count,
             })
             if info.get("msg").lower() != "success":
                 break
-            items = try_get(info,lambda x: x["data"]["items"],list) or []
+            items = try_get(info, lambda x: x["data"]["items"], list) or []
             if not items:
                 break
             for item in items:
                 if not item:
                     continue
-                url = urljoin(self._default_host,item.get("link"))
+                url = urljoin(self._default_host, item.get("link"))
                 if 'album' in url or 'playlist' in url:
                     self.run_playlist(url)
                 else:
@@ -454,28 +472,27 @@ class Zingmp3_vnPlaylist(Zingmp3_vn):
             if total <= start:
                 break
 
-
-    def _entries_for_the_loai_video(self,id_the_loai_video,slug):
-        to_screen("the-loai-video :  %s  %s" % (slug,id_the_loai_video))
-        api = self.get_api_with_signature(name_api=self.name_api_the_loai_video,video_id=id_the_loai_video)
+    def _entries_for_the_loai_video(self, id_the_loai_video, slug):
+        to_screen("the-loai-video :  %s  %s" % (slug, id_the_loai_video))
+        api = self.get_api_with_signature(name_api=self.name_api_the_loai_video, video_id=id_the_loai_video)
         start = 0
         count = 30
         while True:
-            info = get_req(url=api,headers=self._headers,type="json",params={
-                "type":"genre",
-                "sort":"listen",
-                "start":start,
-                "count":count,
+            info = get_req(url=api, headers=self._headers, type="json", params={
+                "type": "genre",
+                "sort": "listen",
+                "start": start,
+                "count": count,
             })
             if info.get("msg").lower() != "success":
                 break
-            items = try_get(info,lambda x: x["data"]["items"],list) or []
+            items = try_get(info, lambda x: x["data"]["items"], list) or []
             if not items:
                 break
             for item in items:
                 if not item:
                     continue
-                url = urljoin(self._default_host,item.get("link"))
+                url = urljoin(self._default_host, item.get("link"))
                 if 'album' in url or 'playlist' in url:
                     self.run_playlist(url)
                 else:
@@ -485,7 +502,6 @@ class Zingmp3_vnPlaylist(Zingmp3_vn):
 
             if total <= start:
                 break
-
 
     def _entries_for_chu_de(self, id_chu_de):
         api = self.get_api_with_signature(name_api=self.name_api_topic, video_id=id_chu_de)
@@ -518,7 +534,6 @@ class Zingmp3_vnPlaylist(Zingmp3_vn):
 
 
 class Zingmp3_vnChart(Zingmp3_vn):
-
     _regex_chart = r'''(?x)^
             ((?:http[s]?|fpt):)\/?\/(?:www\.|m\.|)
             (?P<site>
@@ -549,7 +564,7 @@ class Zingmp3_vnChart(Zingmp3_vn):
         name = mobj.group('name')
         slug_name = mobj.group('slug_name')
 
-        to_screen("#%s : %s" % (name,slug_name))
+        to_screen("#%s : %s" % (name, slug_name))
 
         if name == 'zing-chart':
             api = self.get_api_with_signature(
@@ -583,7 +598,6 @@ class Zingmp3_vnChart(Zingmp3_vn):
 
 
 class Zingmp3_vnUser(Zingmp3_vnPlaylist):
-
     _regex_user = r'''(?x)^
         ((?:http[s]?|fpt):)\/?\/(?:www\.|m\.|)
         (?P<site>
@@ -659,7 +673,7 @@ class Base():
         url = kwargs.get("url")
 
         if "mp3.zing.vn" in url.lower():
-            url = url.replace("mp3.zing.vn","zingmp3.vn")
+            url = url.replace("mp3.zing.vn", "zingmp3.vn")
 
         if re.match(tm._regex_url, url):
             tm.run(url)
@@ -691,8 +705,10 @@ def main(argv):
                       dest='show_json_info')
     opts.add_argument('-l', '--lyric', default=False, action='store_true', help='Download only lyric.',
                       dest='down_lyric')
-    opts.add_argument("--add-index",default=False,action="store_true",help="Add index of playlist.",dest="add_index")
-    opts.add_argument("--convert-mp3",default=False,action="store_true",help="Convert the audio output to .mp3",dest="convert_audio")
+    opts.add_argument("--add-index", default=False, action="store_true", help="Add index of playlist.",
+                      dest="add_index")
+    opts.add_argument("--convert-mp3", default=False, action="store_true", help="Convert the audio output to .mp3",
+                      dest="convert_audio")
 
     args = parser.parse_args()
     status_auth = False
@@ -702,15 +718,15 @@ def main(argv):
         if status_auth:
             to_screen("Login oke.")
         else:
-            to_screen('Login false.',status="error")
+            to_screen('Login false.', status="error")
     Base(
         url=args.url,
         path_save=args.path_save,
         show_json_info=args.show_json_info,
         down_lyric=args.down_lyric,
         is_login=status_auth,
-        add_index = args.add_index,
-        convert_audio = args.convert_audio
+        add_index=args.add_index,
+        convert_audio=args.convert_audio
     )
 
 
@@ -726,4 +742,4 @@ if __name__ == '__main__':
             fc + sd + "\n[" + fr + sb + "-" + fc + sd + "] : " + fr + sd + "User Interrupted..\n")
         sys.exit(0)
     except Exception as e:
-        to_screen("Give that error for fix https://github.com/hatienl0i261299/Zingmp3/issues",status="error")
+        to_screen("Give that error for fix https://github.com/hatienl0i261299/Zingmp3/issues", status="error")
