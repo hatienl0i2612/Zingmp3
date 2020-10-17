@@ -1,6 +1,5 @@
 from setup import *
 
-
 class authentication():
     def __init__(self, path_cookies='', username='', password=''):
         self._path_cookies = path_cookies
@@ -728,6 +727,7 @@ def main(argv):
         add_index=args.add_index,
         convert_audio=args.convert_audio
     )
+    to_screen("Everything ..... Done.")
 
 
 if __name__ == '__main__':
