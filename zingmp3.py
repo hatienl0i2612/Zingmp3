@@ -1,6 +1,7 @@
 from setup import *
 
-class authentication():
+
+class Authentication:
     def __init__(self, path_cookies='', username='', password=''):
         self._path_cookies = path_cookies
         self._username = username
@@ -24,7 +25,8 @@ class authentication():
                         cookies[item[0]] = item[1]
         update_cookies(cookies)
         res = get_req(url='https://accounts.zingmp3.vn/account/userprofile', headers={
-            'user-agent': "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) coc_coc_browser/85.0.134 Chrome/79.0.3945.134 Safari/537.36",
+            'user-agent': r"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                          r"coc_coc_browser/85.0.134 Chrome/79.0.3945.134 Safari/537.36",
             "sec-fetch-site": "same-site",
             'sec-fetch-mode': "cors",
             'referer': "https://zingmp3.vn/",
@@ -712,7 +714,7 @@ def main(argv):
     args = parser.parse_args()
     status_auth = False
     if args.path_cookie:
-        auth = authentication(path_cookies=args.path_cookie)
+        auth = Authentication(path_cookies=args.path_cookie)
         status_auth = auth.auth_with_cookies()
         if status_auth:
             to_screen("Login oke.")
