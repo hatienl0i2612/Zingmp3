@@ -24,6 +24,18 @@ class Authentication:
                     else:
                         cookies[item[0]] = item[1]
         update_cookies(cookies)
+        res = get_req(url='https://accounts.zingmp3.vn/account/userprofile', headers={
+            'user-agent': r"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                          r"coc_coc_browser/85.0.134 Chrome/79.0.3945.134 Safari/537.36",
+            "sec-fetch-site": "same-site",
+            'sec-fetch-mode': "cors",
+            'referer': "https://zingmp3.vn/",
+        })
+        info = res.json()
+        name = try_get(info, lambda x: x.get('data').get('info').get('name'))
+        if not name:
+            to_screen("Cookies die, pls try again.", status="error")
+            sys.exit(0)
         return True
 
 
