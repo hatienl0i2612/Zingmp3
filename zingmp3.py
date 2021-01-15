@@ -24,18 +24,6 @@ class Authentication:
                     else:
                         cookies[item[0]] = item[1]
         update_cookies(cookies)
-        res = get_req(url='https://accounts.zingmp3.vn/account/userprofile', headers={
-            'user-agent': r"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                          r"coc_coc_browser/85.0.134 Chrome/79.0.3945.134 Safari/537.36",
-            "sec-fetch-site": "same-site",
-            'sec-fetch-mode': "cors",
-            'referer': "https://zingmp3.vn/",
-        })
-        info = res.json()
-        name = try_get(info, lambda x: x.get('data').get('info').get('name'))
-        if not name:
-            to_screen("Cookies die, pls try again.", status="error")
-            sys.exit(0)
         return True
 
 
@@ -96,7 +84,7 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
         self._down_lyric = kwargs.get("down_lyric")
         self._add_index = kwargs.get('add_index')
         self._convert_audio = kwargs.get("convert_audio")
-
+        self.f = True
         if self._add_index:
             self._index_media = 1
         else:
@@ -123,14 +111,14 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
             name_api = "/video/get-video-detail"
 
         api = self.get_api_with_signature(name_api=name_api, video_id=video_id)
-        info = get_req(url=api, headers=self._headers, type='json', note="Downloading json from %s" % video_id)
+        info = self.fr(api=api,note="Downloading json from %s" % video_id)
         if _type == 'video-clip' and not self._is_login:
             # TODO: Have api can get best quality like 1080p, 720p, default if dont have VIP just 480p is best quality.
             #  If requests are continuous without downtime,
             #  you may be blocked IP for a short period of time,
             #  So => time.sleep(2)
             _api_video = """http://api.mp3.zing.vn/api/mobile/video/getvideoinfo?requestdata={"id":"%s"}"""
-            _json_video = get_req(url=_api_video % video_id, headers=self._headers, type='json')
+            _json_video = self.fr(api=_api_video % video_id)
             info['data']['streaming']['data']['default'] = _json_video.get("source")
             time.sleep(2)
 
@@ -138,25 +126,22 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
             # TODO: if have vip account can get 320 or lossless media, default is 128
             # TODO: Just support login with cookie file, use -c or --cookie FILE.
             api_download = self.get_api_with_signature(name_api='/download/get-streamings', video_id=video_id)
-            _json = get_req(url=api_download, headers=self._headers, type='json')
+            _json = self.fr(api=api_download,note="")
             if _json and _json.get('msg') != 'Chỉ tài khoản VIP có thể tải bài hát này':
                 info['data']['streaming']['default'] = _json.get('data')
 
         def convert_thumbnail(url):
             if url:
                 return re.sub(r'w[0-9]+', 'w1080', url)
-
         if self._show_json_info:
             sys.stdout.write(json.dumps(info, indent=4, ensure_ascii=False))
             return
-
         if info.get('msg') == 'Success':
             data = info.get('data')
             title = data.get('title')
             streaming = data.get('streaming')
             thumbnail = data.get("thumbnail_medium") or data.get("thumbnail")
             lyric = data.get('lyric') or try_get(data, lambda x: x['lyrics'][0]['content'], str)
-
             self.start_download(streaming=streaming, _type=_type, title=title, lyric=lyric, thumbnail=thumbnail)
         else:
             to_screen("Error can not find media data.")
@@ -304,6 +289,16 @@ https://zingmp3.vn/embed/song/ZWBW6WE8?start=false
         remove_temp_path(temp_output)
         down_lyric()
         return
+    
+    def fr(self,api,params={},note = ""):
+        if self.f:
+            get_req(url=api, headers=self._headers) 
+            info = get_req(url=api, headers=self._headers, params=params, type='json', note=note)
+            self.f = False
+        else:
+            info = get_req(url=api, headers=self._headers, params=params, type='json', note=note)
+        return info
+
 
     def get_api_with_signature(self, name_api, q_search='', video_id='', alias='', _type='', new_release=False):
         """
@@ -448,7 +443,7 @@ class Zingmp3_vnPlaylist(Zingmp3_vn):
         start = 0
         count = 30
         while True:
-            info = get_req(url=api, headers=self._headers, type="json", params={
+            info = self.fr(api=api,params={
                 "type": "genre_album",
                 "sort": "listen",
                 "start": start,
@@ -479,7 +474,7 @@ class Zingmp3_vnPlaylist(Zingmp3_vn):
         start = 0
         count = 30
         while True:
-            info = get_req(url=api, headers=self._headers, type="json", params={
+            info = self.fr(api=api,params={
                 "type": "genre",
                 "sort": "listen",
                 "start": start,
@@ -506,7 +501,7 @@ class Zingmp3_vnPlaylist(Zingmp3_vn):
 
     def _entries_for_chu_de(self, id_chu_de):
         api = self.get_api_with_signature(name_api=self.name_api_topic, video_id=id_chu_de)
-        info = get_req(url=api, headers=self._headers, type='json')
+        info = self.fr(api=api)
         if info.get('msg').lower() != "success":
             to_screen("Can not find data, something was wrong, pls check url again.")
             return
@@ -523,7 +518,7 @@ class Zingmp3_vnPlaylist(Zingmp3_vn):
 
     def _extract_playlist(self, id_playlist):
         api = self.get_api_with_signature(name_api=self.name_api_album_or_playlist, video_id=id_playlist)
-        info = get_req(url=api, headers=self._headers, type="json")
+        info = self.fr(api=api)
         title_playlist = try_get(info, lambda x: x['data']['title'], str) or ''
         items = try_get(info, lambda x: x['data']['song']['items'], list) or []
         to_screen(f"Playlist : {title_playlist}")
@@ -582,7 +577,7 @@ class Zingmp3_vnChart(Zingmp3_vn):
         count = 0
         info = None
         while count != 3:
-            info = get_req(url=api, headers=self._headers, type='text')
+            info = self.fr(api=api)
             if info:
                 info = parse_json(info, transform_source=js_to_json)
                 break
@@ -630,7 +625,7 @@ class Zingmp3_vnUser(Zingmp3_vnPlaylist):
             api = self.get_api_with_signature(name_api="/artist/get-detail", alias=name)
         else:
             api = self.get_api_with_signature(name_api="/oa/get-artist-info", alias=name)
-        info = get_req(url=api, headers=self._headers, type='json')
+        info = self.fr(api=api)
         if info.get('msg') == 'Success':
             self.id_artist = try_get(info, lambda x: x['data']['id'], str) or None
 
@@ -642,12 +637,12 @@ class Zingmp3_vnUser(Zingmp3_vnPlaylist):
         start = 0
         count = 30
         while True:
-            info = get_req(url=self.api, headers=self._headers, params={
+            info = self.fr(api=self.api,params={
                 'type': 'artist',
                 'start': start,
                 'count': count,
                 'sort': 'hot'
-            }, type='json')
+            })
             if info.get('msg').lower() != "success":
                 break
             items = try_get(info, lambda x: x['data']['items'], list) or []
@@ -743,5 +738,5 @@ if __name__ == '__main__':
         sys.stdout.write(
             fc + sd + "\n[" + fr + sb + "-" + fc + sd + "] : " + fr + sd + "User Interrupted..\n")
         sys.exit(0)
-    except Exception as e:
-        to_screen("Give that error for fix https://github.com/hatienl0i261299/Zingmp3/issues", status="error")
+    # except Exception as e:
+    #     to_screen("Give that error for fix https://github.com/hatienl0i261299/Zingmp3/issues", status="error")
