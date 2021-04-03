@@ -1,7 +1,5 @@
 from .module import *
-from .utils import removeCharacters, to_screen
-
-session = requests.Session()
+from .utils import removeCharacters, to_screen, session
 
 
 def get_req(url, headers=None, note=None, params=None, proxies=None, tries=1, timeout=1, type=None):

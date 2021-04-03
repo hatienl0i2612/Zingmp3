@@ -39,10 +39,10 @@ class Downloader(object):
             self._filename = self._generate_unsafe_filename()
         return self._filename
 
-    def _generate_filename():
+    def _generate_filename(self):
         pass
 
-    def _generate_unsafe_filename():
+    def _generate_unsafe_filename(self):
         pass
 
     def download(self, filepath="", unsafe=False, quiet=False, callback=lambda *x: None):
@@ -156,6 +156,5 @@ class Downloader(object):
 
         if not self._active:
             os.rename(temp_filepath, filepath)
-            retVal = {"status": True, "msg": "download"}
         sys.stdout.write("\n")
         return 

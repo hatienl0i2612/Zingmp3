@@ -16,10 +16,4 @@ from urllib.parse import urljoin, urlparse, unquote, quote, parse_qs, urlencode
 from http import client
 from urllib import parse
 import subprocess
-from multiprocessing.dummy import Pool
 import shutil
-from Crypto.Cipher import AES
-from bs4 import BeautifulSoup as get_soup
-from html import entities
-import base64
-import codecs
