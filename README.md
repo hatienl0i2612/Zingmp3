@@ -1,6 +1,8 @@
 # ***Zingmp3***
 ***Zingmp3 - A tool crawl data from [`zingmp3.vn`](https://zingmp3.vn/).***
 
+Update 07/03/2022: This repo was merged for `yt-dlp`, pls use [`https://github.com/yt-dlp/yt-dlp`](https://github.com/yt-dlp/yt-dlp) for download.
+
 ```
 $ python zingmp3.py -h
 usage: zingmp3.py [-h] [-c] [-s] [-j] [-l] [--add-index] url
