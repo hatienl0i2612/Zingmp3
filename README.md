@@ -8,7 +8,36 @@ A standalone Python CLI for crawling metadata and downloading media from Zing MP
   [`ffmpeg`](https://www.ffmpeg.org/) for HLS downloads
 - Standalone release: no Python, packages, or separate FFmpeg installation
 
-## Installation
+## Download the latest release
+
+[Download the latest portable release](https://github.com/hatienl0i2612/zingmp3/releases/latest)
+and select the archive for your system:
+
+| Operating system | Asset name |
+| --- | --- |
+| Linux x86-64 | `zingmp3-v*-linux-x86_64.tar.gz` |
+| Windows x86-64 | `zingmp3-v*-windows-x86_64.zip` |
+| macOS Intel | `zingmp3-v*-macos-x86_64.zip` |
+| macOS Apple Silicon | `zingmp3-v*-macos-arm64.zip` |
+
+Extract the archive. On Linux and macOS, make the binary executable and run it:
+
+```bash
+chmod +x zingmp3
+./zingmp3 --help
+./zingmp3 'https://zingmp3.vn/bai-hat/.../ID.html'
+```
+
+On Windows, open PowerShell in the extracted directory:
+
+```powershell
+.\zingmp3.exe --help
+.\zingmp3.exe "https://zingmp3.vn/bai-hat/.../ID.html"
+```
+
+The portable executable already includes Python, all required packages, and FFmpeg.
+
+## Installation from source
 
 Install the locked dependencies and the project into `.venv` with
 [`uv`](https://docs.astral.sh/uv/):
