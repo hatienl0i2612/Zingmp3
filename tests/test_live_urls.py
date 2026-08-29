@@ -85,7 +85,7 @@ class LiveUrlExtractionTests(unittest.TestCase):
     def assert_media(self, result):
         self.assert_common_fields(result, "zingmp3", "media")
         self.assertIsInstance(result["duration"], int)
-        self.assert_formats(result)
+        self.assert_formats(result, allow_unavailable=True)
 
     def assert_collection(self, result, expected_kind):
         self.assert_common_fields(result, expected_kind, "playlist")
@@ -103,8 +103,14 @@ class LiveUrlExtractionTests(unittest.TestCase):
         self.assertTrue(result["title"])
         self.assertRegex(result["webpage_url"], r"^https?://")
 
-    def assert_formats(self, result):
+    def assert_formats(self, result, *, allow_unavailable=False):
         self.assertIsInstance(result["formats"], list)
-        self.assertGreater(len(result["formats"]), 0)
+        if not result["formats"]:
+            if not allow_unavailable:
+                self.fail("Expected at least one playable format")
+            self.assertEqual(result["availability"], "premium_only")
+            self.assertIsInstance(result["format_error"], str)
+            self.assertTrue(result["format_error"])
+            return
         for media_format in result["formats"]:
             self.assertRegex(media_format["url"], r"^https?://")
