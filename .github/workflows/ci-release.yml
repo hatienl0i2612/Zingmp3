@@ -102,11 +102,9 @@ jobs:
         run: uv run python -c "import os, subprocess; subprocess.run([os.environ['EXECUTABLE'], '--help'], check=True)"
 
       - name: Package executable and checksum
-        env:
-          RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
         run: >-
           uv run python scripts/package_release.py
-          --version "$RELEASE_TAG"
+          --version "${{ needs.validate-release.outputs.tag }}"
           --platform "${{ matrix.platform }}"
           --binary "${{ matrix.binary }}"
 
