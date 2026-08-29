@@ -1,129 +1,97 @@
-# ***Zingmp3***
-***Zingmp3 - A tool crawl data from [`zingmp3.vn`](https://zingmp3.vn/).***
+# Zing MP3 CLI
 
-***Update 07/03/2022: This repo was merged for `yt-dlp`, pls use [`https://github.com/yt-dlp/yt-dlp`](https://github.com/yt-dlp/yt-dlp) for download.***
-```
-$ python zingmp3.py -h
-usage: zingmp3.py [-h] [-c] [-s] [-j] [-l] [--add-index] url
+A standalone Python CLI for crawling metadata and downloading media from Zing MP3.
 
-Zingmp3 - A tool crawl data from zingmp3.vn
+## Requirements
 
-positional arguments:
-  url             Url.
+- Python 3.10+
+- [`ffmpeg`](https://www.ffmpeg.org/) for HLS downloads
 
-optional arguments:
-  -h, --help      show this help message and exit
+## Installation
 
-Authentication:
-  -c , --cookie   Cookies for authenticate with.
+Install the locked dependencies and the project into `.venv` with
+[`uv`](https://docs.astral.sh/uv/):
 
-Options:
-  -s , --save     Path to save
-  -j, --json      Show json of info media.
-  -l, --lyric     Download only lyric.
-  --add-index     Add index of playlist.
+```bash
+uv sync
 ```
 
+Run the CLI without activating the virtual environment:
 
-## ***Installation***
-- **Language**: Python3.x
+```bash
+uv run zingmp3 --help
+uv run zingmp3 --json 'https://zingmp3.vn/bai-hat/.../ID.html'
+```
 
-- **Module**: requests, colorama
-  ```
-  pip install -r requirements.txt
-  ``` 
+Alternatively, activate the environment and use the installed console command
+directly:
 
-## ***Options***
-- ***`-c` or `--cookie`: Add cookies to auth***
-- ***`-j` or `--json` : Show json of info media.***
-- ***`-s` or `--save` : Path to save file downloaded.***
-- ***`-l` or `--lyric` : Download with lyric.***
-- ***`--add-index` : Add index of playlist for title.***
-- ***`--convert-mp3` : Convert the audio output to .mp3.***
-- ***Default will download all media and lyric.***
-- ***All the example in Usage.***
-- ***Some url is hls, need setup [ffmpeg](https://www.ffmpeg.org/download.html)***
-- ***After download file ffmpeg and put that file at the same folder with tool***
- 
-## ***All URL Supported***
-- ***url media***
-  ```
-  https://zingmp3.vn/video-clip/.../<id>.html
-  https://zingmp3.vn/bai-hat/.../<id>.html
-  https://zingmp3.vn/playlist/.../<id>.html
-  https://zingmp3.vn/album/.../<id>.html
-  https://zingmp3.vn/embed/.../<id>.html
-  https://zingmp3.vn/the-loai-video/<slug>/<id>.html
-  https://zingmp3.vn/the-loai-album/<slug>/<id>.html
-  ```
-- ***url artist's profile type 1***
-  ```
-  https://zingmp3.vn/nghe-si/<name_artist>/video
-  https://zingmp3.vn/nghe-si/<name_artist>/playlist
-  https://zingmp3.vn/nghe-si/<name_artist>/bai-hat
-  https://zingmp3.vn/nghe-si/<name_artist>/album
-  ```
-- ***url artist's profile type 2***
-  ```
-  https://zingmp3.vn/<name_artist>/bai-hat
-  https://zingmp3.vn/<name_artist>/playlist
-  https://zingmp3.vn/<name_artist>/video
-  https://zingmp3.vn/<name_artist>/album
-  ```
-- ***url #ZINGCHART***
-  ```
-  https://zingmp3.vn/zing-chart/bai-hat.html
-  https://zingmp3.vn/zing-chart/video.html
-  https://zingmp3.vn/zing-chart-tuan/bai-hat-Viet-Nam/<id>.html
-  https://zingmp3.vn/zing-chart-tuan/video-US-UK/<id>.html
-  ```
-- ***url new release***
-  ```
-  https://zingmp3.vn/top-new-release/index.html
-  ```
- 
-## ***How to get cookies.txt for login***
-***If you want to use your account VIP to download quality list 320 or lossless***
+```bash
+source .venv/bin/activate
+zingmp3 --help
+```
 
-***1. Download extension from chrome store [`cookies.txt`](https://chrome.google.com/webstore/detail/cookiestxt/njabckikapfpffapmjgojcnbfjonfjfg)***
+The root `zingmp3.py` remains available as a backward-compatible development
+entrypoint:
 
-***2. Go to page [`zingmp3`](https://zingmp3.vn/)***
+```bash
+python zingmp3.py --help
+```
 
-***3. Click to icon cookies.txt just download***
+## Usage
 
-***4. Click to `click here` and save file cookies.txt***
+```bash
+zingmp3 'https://zingmp3.vn/bai-hat/.../ID.html'
+zingmp3 --json 'https://zingmp3.vn/album/.../ID.html'
+zingmp3 --output ./downloads 'https://zingmp3.vn/Mr-Siro/bai-hat'
+zingmp3 --cookies-file cookies.txt 'URL'
+zingmp3 --cookies 'zmp3_rqid=...; zmp3_sid=...' 'URL'
+zingmp3 --cookies-from-browser chrome 'URL'
+zingmp3 -H 'Origin: https://zingmp3.vn' -H 'X-Test: value' 'URL'
+```
 
-***5. Get cookies.txt then put it to them same path with tool, then run***
+`--json` resolves the entire collection before writing complete metadata to stdout.
+Download mode resolves one collection entry, downloads it immediately, and only then
+continues to the next entry. The CLI chooses lossless audio first, then the highest
+resolution or bitrate. `--output` is a destination file for one media URL or a
+destination directory for a collection. For live radio, it is ignored and the stream
+URL is printed instead.
 
-***Sometime cookies will die, Pls follow the steps above to update the new cookies.***
+## Supported URL families
 
-***If you don't set cookies, tool will download default quality like 128 ...***
+- Songs, music videos, and embeds
+- Albums and playlists
+- Zing chart, new-release chart, and Top 100
+- Weekly charts
+- Music-video charts
+- Artist songs, singles, albums, and videos
+- New releases
+- Hubs
+- Live radio
 
+## Unit tests
 
-## ***Usage***
+```bash
+uv run python -m unittest discover -s tests -v
+```
 
-- ***Install module***
-  ```
-  pip install -r requirements.txt
-  ```
+## Code quality
 
-- ***Run***
-  ```
-  python zingmp3.py https://zingmp3.vn/bai-hat/Khoc-Cung-Em-Mr-Siro-Gray-Wind/ZWBI0DFI.html
-  ```
+Check lint errors and verify formatting without changing files:
 
-- ***Download with cookies***
+```bash
+uvx ruff check src zingmp3.py tests
+uvx ruff format --check src zingmp3.py tests
+```
 
-  ```
-  python zingmp3.py -c cookies.txt https://zingmp3.vn/bai-hat/Khoc-Cung-Em-Mr-Siro-Gray-Wind/ZWBI0DFI.html
-  ```
+Format the source code and tests:
 
-- ***Show json of info media***
-    ```
-    python zingmp3.py -j https://zingmp3.vn/bai-hat/Khoc-Cung-Em-Mr-Siro-Gray-Wind/ZWBI0DFI.html
-    ```
+```bash
+uvx ruff format src zingmp3.py tests
+```
 
-## ***Note***
-- ***All file downloaded in folder DOWNLOAD at the same path***
-- ***If there's an error or problem, please write issue out here [`zingmp3 issues`](https://github.com/hatienl0i261299/Zingmp3/issues)***
-- ***FB: 100011734236090***
+Apply safe automatic lint fixes when available:
+
+```bash
+uvx ruff check --fix src zingmp3.py tests
+```
