@@ -184,9 +184,11 @@ class Downloader:
             raise
 
     def _download_hls(self, url: str, temporary: Path) -> None:
-        ffmpeg = shutil.which("ffmpeg")
+        ffmpeg = self._find_ffmpeg()
         if not ffmpeg:
-            raise ZingMp3Error("Downloading HLS requires ffmpeg in PATH")
+            raise ZingMp3Error(
+                "Downloading HLS requires ffmpeg in PATH or the standalone bundle"
+            )
         command = [ffmpeg, "-nostdin", "-loglevel", "error", "-y"]
         if headers := self._ffmpeg_headers():
             command.extend(["-headers", headers])
@@ -204,6 +206,17 @@ class Downloader:
         if completed.returncode:
             temporary.unlink(missing_ok=True)
             raise ZingMp3Error(f"ffmpeg failed with exit code {completed.returncode}")
+
+    @staticmethod
+    def _find_ffmpeg() -> str | None:
+        """Find FFmpeg bundled by PyInstaller, then fall back to PATH."""
+        executable = "ffmpeg.exe" if os.name == "nt" else "ffmpeg"
+        bundle_directory = getattr(sys, "_MEIPASS", None)
+        if bundle_directory:
+            bundled_ffmpeg = Path(bundle_directory) / executable
+            if bundled_ffmpeg.is_file():
+                return str(bundled_ffmpeg)
+        return shutil.which("ffmpeg")
 
     def _ffmpeg_headers(self) -> str:
         headers = [

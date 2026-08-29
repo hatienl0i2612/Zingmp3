@@ -1,0 +1,162 @@
+name: CI and release
+
+on:
+  push:
+  pull_request:
+  release:
+    types: [published]
+
+concurrency:
+  group: ci-release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'release' }}
+
+jobs:
+  test:
+    name: Unit and live URL tests
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Install locked dependencies
+        run: uv sync --locked --group dev
+
+      - name: Run all tests
+        run: uv run python -m unittest discover -s tests -v
+
+      - name: Check lint and formatting
+        run: |
+          uv run ruff check src scripts tests zingmp3.py
+          uv run ruff format --check src scripts tests zingmp3.py
+
+  validate-release:
+    name: Validate release version
+    if: github.event_name == 'release'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - name: Require a semantic version tag
+        id: version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tag must match vMAJOR.MINOR.PATCH, for example v1.0.0" >&2
+            exit 1
+          fi
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.platform }}
+    if: github.event_name == 'release'
+    needs: [test, validate-release]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            platform: linux-x86_64
+            binary: dist/zingmp3
+          - runner: windows-2025
+            platform: windows-x86_64
+            binary: dist/zingmp3.exe
+          - runner: macos-15-intel
+            platform: macos-x86_64
+            binary: dist/zingmp3
+          - runner: macos-15
+            platform: macos-arm64
+            binary: dist/zingmp3
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Install locked build dependencies
+        run: uv sync --locked --group dev
+
+      - name: Build one-file executable
+        run: uv run python scripts/build_standalone.py
+
+      - name: Smoke-test standalone executable
+        env:
+          EXECUTABLE: ${{ matrix.binary }}
+        run: uv run python -c "import os, subprocess; subprocess.run([os.environ['EXECUTABLE'], '--help'], check=True)"
+
+      - name: Package executable and checksum
+        env:
+          RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
+        run: >-
+          uv run python scripts/package_release.py
+          --version "$RELEASE_TAG"
+          --platform "${{ matrix.platform }}"
+          --binary "${{ matrix.binary }}"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-${{ matrix.platform }}
+          path: release/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Scan and publish release assets
+    if: github.event_name == 'release'
+    needs: [validate-release, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: release-*
+          path: release
+          merge-multiple: true
+
+      - name: Scan release files with ClamAV
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes clamav
+          sudo systemctl stop clamav-freshclam.service || true
+          sudo freshclam || true
+          clamscan --recursive --infected release
+
+      - name: Create combined checksum file
+        run: |
+          cd release
+          sha256sum -- ./*.zip ./*.tar.gz > SHA256SUMS
+
+      - name: Create build provenance attestations
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            release/*.zip
+            release/*.tar.gz
+
+      - name: Upload assets to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
+        run: gh release upload "$RELEASE_TAG" release/* --clobber

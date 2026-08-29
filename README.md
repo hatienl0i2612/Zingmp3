@@ -4,8 +4,9 @@ A standalone Python CLI for crawling metadata and downloading media from Zing MP
 
 ## Requirements
 
-- Python 3.10+
-- [`ffmpeg`](https://www.ffmpeg.org/) for HLS downloads
+- Source installation: Python 3.10+ and
+  [`ffmpeg`](https://www.ffmpeg.org/) for HLS downloads
+- Standalone release: no Python, packages, or separate FFmpeg installation
 
 ## Installation
 
@@ -80,18 +81,18 @@ uv run python -m unittest discover -s tests -v
 Check lint errors and verify formatting without changing files:
 
 ```bash
-uvx ruff check src zingmp3.py tests
-uvx ruff format --check src zingmp3.py tests
+uv run ruff check src scripts tests zingmp3.py
+uv run ruff format --check src scripts tests zingmp3.py
 ```
 
 Format the source code and tests:
 
 ```bash
-uvx ruff format src zingmp3.py tests
+uv run ruff format src scripts tests zingmp3.py
 ```
 
 Apply safe automatic lint fixes when available:
 
 ```bash
-uvx ruff check --fix src zingmp3.py tests
+uv run ruff check --fix src scripts tests zingmp3.py
 ```

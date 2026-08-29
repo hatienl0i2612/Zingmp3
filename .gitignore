@@ -4,6 +4,7 @@ __pycache__/
 *.part
 build/
 dist/
+release/
 *.egg-info/
 
 # Byte-compiled / optimized / DLL files
