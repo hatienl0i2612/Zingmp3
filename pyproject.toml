@@ -11,12 +11,15 @@ requires-python = ">=3.10"
 dependencies = [
     "browser-cookie3>=0.20.1,<1",
     "requests>=2.31.0,<3",
+    "rich>=15.0.0,<16",
 ]
 
 [dependency-groups]
 dev = [
     "imageio-ffmpeg>=0.6.0,<1",
     "pyinstaller>=6.22.0,<7",
+    "pytest>=9.1.1,<10",
+    "pytest-rerunfailures>=16.6,<17",
     "ruff>=0.16.5,<1",
 ]
 
@@ -32,3 +35,7 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "RUF"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-v", "--reruns=2", "--reruns-delay=1"]

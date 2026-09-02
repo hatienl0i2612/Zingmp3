@@ -4,12 +4,14 @@ import os
 import shutil
 import subprocess
 import sys
+from collections import deque
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
 from .client import ZingMp3Client
 from .exceptions import ZingMp3Error
+from .progress import hls_download_progress, http_download_progress
 from .utils import as_int, safe_filename
 
 
@@ -88,7 +90,13 @@ class Downloader:
                 index=media_index,
                 is_playlist=is_playlist,
             )
-            self._download_one(media_format, target)
+            if downloaded:
+                print(file=sys.stderr)
+            self._download_one(
+                media_format,
+                target,
+                duration=as_int(info.get("duration")),
+            )
             downloaded = True
             yield target
         if found_live and not found_media:
@@ -147,7 +155,13 @@ class Downloader:
         for entry in result.get("entries") or []:
             yield from Downloader._iter_media(entry)
 
-    def _download_one(self, media_format: dict[str, Any], target: Path) -> None:
+    def _download_one(
+        self,
+        media_format: dict[str, Any],
+        target: Path,
+        *,
+        duration: int | None = None,
+    ) -> None:
         target.parent.mkdir(parents=True, exist_ok=True)
         if target.exists():
             print(f"Already exists, skipping: {target}", file=sys.stderr)
@@ -155,41 +169,58 @@ class Downloader:
         temporary = target.with_name(f".{target.stem}.part{target.suffix}")
         print(f"Downloading: {target}", file=sys.stderr)
         if media_format.get("protocol") == "m3u8":
-            self._download_hls(media_format["url"], temporary)
+            self._download_hls(
+                media_format["url"],
+                temporary,
+                description=target.name,
+                duration=duration,
+            )
         else:
-            self._download_http(media_format["url"], temporary)
+            self._download_http(media_format["url"], temporary, description=target.name)
         temporary.replace(target)
 
-    def _download_http(self, url: str, temporary: Path) -> None:
+    def _download_http(self, url: str, temporary: Path, *, description: str) -> None:
         response = self.client.request(url, stream=True)
-        total = as_int(response.headers.get("Content-Length")) or 0
-        received = 0
+        total = as_int(response.headers.get("Content-Length"))
+        progress, task_id = http_download_progress(description, total)
         try:
-            with temporary.open("wb") as output:
+            with progress, temporary.open("wb") as output:
                 for chunk in response.iter_content(chunk_size=1024 * 256):
                     if not chunk:
                         continue
                     output.write(chunk)
-                    received += len(chunk)
-                    if total:
-                        print(
-                            f"\r{received * 100 / total:6.2f}%",
-                            end="",
-                            file=sys.stderr,
-                        )
-            if total:
-                print(file=sys.stderr)
+                    progress.advance(task_id, len(chunk))
+                if total:
+                    progress.update(task_id, completed=total)
         except Exception:
             temporary.unlink(missing_ok=True)
             raise
+        finally:
+            response.close()
 
-    def _download_hls(self, url: str, temporary: Path) -> None:
+    def _download_hls(
+        self,
+        url: str,
+        temporary: Path,
+        *,
+        description: str,
+        duration: int | None,
+    ) -> None:
         ffmpeg = self._find_ffmpeg()
         if not ffmpeg:
             raise ZingMp3Error(
                 "Downloading HLS requires ffmpeg in PATH or the standalone bundle"
             )
-        command = [ffmpeg, "-nostdin", "-loglevel", "error", "-y"]
+        command = [
+            ffmpeg,
+            "-nostdin",
+            "-loglevel",
+            "error",
+            "-progress",
+            "pipe:1",
+            "-nostats",
+            "-y",
+        ]
         if headers := self._ffmpeg_headers():
             command.extend(["-headers", headers])
         command.extend(
@@ -202,10 +233,69 @@ class Downloader:
                 str(temporary),
             ]
         )
-        completed = subprocess.run(command, check=False)
-        if completed.returncode:
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
+        )
+        progress, task_id = hls_download_progress(description, duration)
+        error_lines: deque[str] = deque(maxlen=10)
+        try:
+            if process.stdout is None:
+                raise ZingMp3Error("Could not read ffmpeg progress output")
+            with progress:
+                for raw_line in process.stdout:
+                    line = raw_line.strip()
+                    key, separator, value = line.partition("=")
+                    if not separator:
+                        if line:
+                            error_lines.append(line)
+                        continue
+                    seconds = self._ffmpeg_progress_seconds(key, value)
+                    if seconds is not None:
+                        completed = min(seconds, duration) if duration else seconds
+                        progress.update(task_id, completed=completed)
+                    elif key == "total_size":
+                        downloaded = as_int(value)
+                        if downloaded is not None:
+                            progress.update(task_id, downloaded=downloaded)
+                    elif key == "speed":
+                        progress.update(task_id, media_speed=value)
+                return_code = process.wait()
+                if not return_code and duration:
+                    progress.update(task_id, completed=duration)
+        except BaseException:
+            if process.poll() is None:
+                process.terminate()
+            process.wait()
             temporary.unlink(missing_ok=True)
-            raise ZingMp3Error(f"ffmpeg failed with exit code {completed.returncode}")
+            raise
+        finally:
+            if process.stdout is not None:
+                process.stdout.close()
+        if return_code:
+            temporary.unlink(missing_ok=True)
+            detail = f": {error_lines[-1]}" if error_lines else ""
+            raise ZingMp3Error(f"ffmpeg failed with exit code {return_code}{detail}")
+
+    @staticmethod
+    def _ffmpeg_progress_seconds(key: str, value: str) -> float | None:
+        if key in {"out_time_us", "out_time_ms"}:
+            microseconds = as_int(value)
+            if microseconds is None:
+                return None
+            return max(microseconds / 1_000_000, 0)
+        if key != "out_time":
+            return None
+        try:
+            hours, minutes, seconds = value.split(":", 2)
+            return max(float(hours) * 3600 + float(minutes) * 60 + float(seconds), 0)
+        except ValueError:
+            return None
 
     @staticmethod
     def _find_ffmpeg() -> str | None:

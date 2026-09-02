@@ -1,15 +1,14 @@
-import unittest
 from unittest.mock import patch
 
 from zingmp3_cli.cli import build_parser, main
 
 
-class CliTests(unittest.TestCase):
+class TestCli:
     def test_cookies_file_alias(self):
         args = build_parser().parse_args(
             ["--cookies-file", "cookies.txt", "https://zingmp3.vn/top100"]
         )
-        self.assertEqual(args.cookies, "cookies.txt")
+        assert args.cookies == "cookies.txt"
 
     def test_repeatable_headers(self):
         args = build_parser().parse_args(
@@ -21,7 +20,7 @@ class CliTests(unittest.TestCase):
                 "https://zingmp3.vn/top100",
             ]
         )
-        self.assertEqual(args.headers, ["X-One: 1", "X-Two: 2"])
+        assert args.headers == ["X-One: 1", "X-Two: 2"]
 
     @patch("zingmp3_cli.cli.Downloader")
     @patch("zingmp3_cli.cli.ZingMp3Crawler")
@@ -33,7 +32,7 @@ class CliTests(unittest.TestCase):
         crawler.iter_media.return_value = iter(())
         downloader_class.return_value.iter_downloads.return_value = iter(())
 
-        self.assertEqual(main(["https://zingmp3.vn/top100"]), 0)
+        assert main(["https://zingmp3.vn/top100"]) == 0
 
         crawler.extract.assert_called_once_with(
             "https://zingmp3.vn/top100", resolve=False
@@ -46,6 +45,6 @@ class CliTests(unittest.TestCase):
         crawler.extract.return_value = {"_type": "playlist", "entries": []}
 
         with patch("builtins.print"):
-            self.assertEqual(main(["--json", "https://zingmp3.vn/top100"]), 0)
+            assert main(["--json", "https://zingmp3.vn/top100"]) == 0
 
         crawler.extract.assert_called_once_with("https://zingmp3.vn/top100")

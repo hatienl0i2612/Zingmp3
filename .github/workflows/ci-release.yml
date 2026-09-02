@@ -32,7 +32,7 @@ jobs:
         run: uv sync --locked --group dev
 
       - name: Run all tests
-        run: uv run python -m unittest discover -s tests -v
+        run: uv run pytest
 
       - name: Check lint and formatting
         run: |

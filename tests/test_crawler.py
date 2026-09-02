@@ -1,5 +1,3 @@
-import unittest
-
 from zingmp3_cli.crawler import ZingMp3Crawler
 
 
@@ -27,30 +25,27 @@ def make_crawler():
     return crawler
 
 
-class CrawlerResolutionTests(unittest.TestCase):
+class TestCrawlerResolution:
     def test_lazy_iterator_resolves_only_the_requested_entry(self):
         crawler = make_crawler()
         root = crawler.extract("https://zingmp3.vn/album", resolve=False)
         entries = crawler.iter_media(root)
 
-        self.assertEqual(crawler.registry.calls, ["https://zingmp3.vn/album"])
-        self.assertEqual(next(entries)["id"], "one")
-        self.assertEqual(
-            crawler.registry.calls,
-            ["https://zingmp3.vn/album", "https://zingmp3.vn/song/one"],
-        )
-        self.assertEqual(next(entries)["id"], "two")
+        assert crawler.registry.calls == ["https://zingmp3.vn/album"]
+        assert next(entries)["id"] == "one"
+        assert crawler.registry.calls == [
+            "https://zingmp3.vn/album",
+            "https://zingmp3.vn/song/one",
+        ]
+        assert next(entries)["id"] == "two"
 
     def test_eager_extract_resolves_every_entry(self):
         crawler = make_crawler()
         result = crawler.extract("https://zingmp3.vn/album")
 
-        self.assertEqual([entry["id"] for entry in result["entries"]], ["one", "two"])
-        self.assertEqual(
-            crawler.registry.calls,
-            [
-                "https://zingmp3.vn/album",
-                "https://zingmp3.vn/song/one",
-                "https://zingmp3.vn/song/two",
-            ],
-        )
+        assert [entry["id"] for entry in result["entries"]] == ["one", "two"]
+        assert crawler.registry.calls == [
+            "https://zingmp3.vn/album",
+            "https://zingmp3.vn/song/one",
+            "https://zingmp3.vn/song/two",
+        ]

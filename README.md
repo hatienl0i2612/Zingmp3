@@ -102,7 +102,7 @@ URL is printed instead.
 ## Unit tests
 
 ```bash
-uv run python -m unittest discover -s tests -v
+uv run pytest
 ```
 
 ## Code quality

@@ -1,11 +1,10 @@
 import os
 import subprocess
 import sys
-import unittest
 from pathlib import Path
 
 
-class PackageImportTests(unittest.TestCase):
+class TestPackageImports:
     def test_extractors_can_be_imported_first(self):
         environment = {**os.environ, "PYTHONPATH": str(Path.cwd() / "src")}
         process = subprocess.run(
@@ -23,4 +22,4 @@ class PackageImportTests(unittest.TestCase):
             text=True,
             env=environment,
         )
-        self.assertEqual(process.returncode, 0, process.stderr)
+        assert process.returncode == 0, process.stderr
