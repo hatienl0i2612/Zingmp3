@@ -97,3 +97,35 @@ def hls_download_progress(
         media_speed="--x",
     )
     return progress, task_id
+
+
+class HlsSegmentColumn(ProgressColumn):
+    """Render completed segment count, downloaded size, and transfer speed."""
+
+    def render(self, task: Task) -> Text:
+        done = int(task.completed)
+        total = int(task.total) if task.total else 0
+        downloaded = decimal(int(task.fields.get("downloaded", 0)))
+        speed = task.fields.get("segment_speed") or 0
+        speed_text = f"{decimal(int(speed))}/s" if speed else "--"
+        return Text(f"{done}/{total}  {downloaded}  {speed_text}", style="magenta")
+
+
+def hls_segment_progress(description: str, total: int) -> tuple[Progress, TaskID]:
+    """Create a segment-count progress bar for a parallel HLS transfer."""
+    progress = _progress(
+        SpinnerColumn(style="bright_magenta"),
+        BarColumn(
+            bar_width=_BAR_WIDTH,
+            style="grey35",
+            complete_style="bright_magenta",
+            finished_style="green",
+            pulse_style="magenta",
+        ),
+        TaskProgressColumn(),
+        HlsSegmentColumn(),
+        TimeRemainingColumn(compact=True, elapsed_when_finished=True),
+    )
+    return progress, progress.add_task(
+        description, total=total, downloaded=0, segment_speed=0
+    )

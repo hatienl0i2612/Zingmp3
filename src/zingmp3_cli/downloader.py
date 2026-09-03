@@ -4,14 +4,23 @@ import os
 import shutil
 import subprocess
 import sys
+import time
+import urllib.parse
+import uuid
 from collections import deque
 from collections.abc import Iterable, Iterator
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
 from .client import ZingMp3Client
 from .exceptions import ZingMp3Error
-from .progress import hls_download_progress, http_download_progress
+from .hls import _parse_attributes
+from .progress import (
+    hls_download_progress,
+    hls_segment_progress,
+    http_download_progress,
+)
 from .utils import as_int, safe_filename
 
 
@@ -21,6 +30,9 @@ class Downloader:
     def __init__(self, client: ZingMp3Client) -> None:
         self.client = client
         self._cached_hls_options: list[str] | None = None
+
+        self.DOWNLOADER_HLS_WORKERS = 5
+        self.DOWNLOADER_HLS_RETRIES = 3
 
     @staticmethod
     def best_format(info: dict[str, Any]) -> dict[str, Any]:
@@ -199,6 +211,240 @@ class Downloader:
             response.close()
 
     def _download_hls(
+        self,
+        url: str,
+        temporary: Path,
+        *,
+        description: str,
+        duration: int | None,
+    ) -> None:
+        playlist_text, playlist_url = self._load_media_playlist(url)
+        plan = self._parse_hls_playlist(playlist_text, playlist_url)
+        if plan is None:
+            # Encrypted or byte-range playlists still need ffmpeg's HLS demuxer.
+            self._download_hls_ffmpeg(
+                url,
+                temporary,
+                description=description,
+                duration=duration,
+            )
+            return
+        init_url, segments = plan
+        job_dir = self._hls_job_dir(temporary)
+        try:
+            self._download_segments(
+                init_url, segments, job_dir, description=description
+            )
+            self._mux_hls(job_dir, temporary)
+        except BaseException:
+            temporary.unlink(missing_ok=True)
+            raise
+        finally:
+            shutil.rmtree(job_dir, ignore_errors=True)
+
+    @staticmethod
+    def _hls_job_dir(temporary: Path) -> Path:
+        """Per-run folder under .zmp3/ next to the output.
+
+        The pid + uuid token keeps concurrent runs of different links from
+        writing into the same folder.
+        """
+        token = f"{os.getpid()}-{uuid.uuid4().hex[:8]}"
+        return temporary.parent / ".zmp3" / f"{temporary.stem}.{token}"
+
+    def _load_media_playlist(self, url: str, *, depth: int = 2) -> tuple[str, str]:
+        """Fetch the manifest, following master playlists to the best variant."""
+        text = self.client.request(url).text
+        if depth <= 0:
+            return text, url
+        variant = self._select_variant(text, url)
+        if variant is None:
+            return text, url
+        return self._load_media_playlist(variant, depth=depth - 1)
+
+    @staticmethod
+    def _select_variant(text: str, base_url: str) -> str | None:
+        """Return the highest-bandwidth variant URI of a master playlist."""
+        best: tuple[int, str] | None = None
+        lines = text.splitlines()
+        for index, raw_line in enumerate(lines):
+            line = raw_line.strip()
+            if not line.startswith("#EXT-X-STREAM-INF:"):
+                continue
+            attributes = _parse_attributes(line.split(":", 1)[1])
+            bandwidth = as_int(attributes.get("BANDWIDTH")) or 0
+            for raw_next in lines[index + 1 :]:
+                candidate = raw_next.strip()
+                if not candidate:
+                    continue
+                if not candidate.startswith("#") and (
+                    best is None or bandwidth > best[0]
+                ):
+                    best = (bandwidth, urllib.parse.urljoin(base_url, candidate))
+                break
+        return best[1] if best else None
+
+    @staticmethod
+    def _parse_hls_playlist(
+        text: str, base_url: str
+    ) -> tuple[str | None, list[str]] | None:
+        """Resolve segment URIs, or None when the playlist needs ffmpeg.
+
+        Returns ``(init_segment_url, segment_urls)`` where ``init_segment_url``
+        is the fMP4 ``#EXT-X-MAP`` segment if present. Encryption (``#EXT-X-KEY``
+        with a non-NONE method) and ``#EXT-X-BYTERANGE`` are unsupported here.
+        """
+        init_url: str | None = None
+        segments: list[str] = []
+        for raw_line in text.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            if line.startswith("#EXT-X-STREAM-INF"):
+                return None
+            if not line.startswith("#"):
+                segments.append(urllib.parse.urljoin(base_url, line))
+                continue
+            if line.startswith("#EXT-X-KEY"):
+                method = _parse_attributes(line.split(":", 1)[1]).get("METHOD", "")
+                if method.upper() != "NONE":
+                    return None
+            elif line.startswith("#EXT-X-MAP"):
+                attributes = _parse_attributes(line.split(":", 1)[1])
+                if attributes.get("BYTERANGE") or not attributes.get("URI"):
+                    return None
+                init_url = urllib.parse.urljoin(base_url, attributes["URI"])
+            elif line.startswith("#EXT-X-BYTERANGE"):
+                return None
+        if not segments:
+            return None
+        return init_url, segments
+
+    @staticmethod
+    def _segment_name(index: int, url: str) -> str:
+        suffix = Path(urllib.parse.urlparse(url).path).suffix or ".seg"
+        return f"{index:06d}{suffix}"
+
+    def _save_segment(self, url: str, path: Path) -> int:
+        """Stream one segment to disk, retrying transient failures.
+
+        Returns the number of bytes written.
+        """
+        last_error: Exception | None = None
+        for _ in range(self.DOWNLOADER_HLS_RETRIES):
+            try:
+                written = 0
+                with self.client.request(url, stream=True) as response:
+                    with path.open("wb") as file:
+                        for chunk in response.iter_content(chunk_size=256 * 1024):
+                            if not chunk:
+                                continue
+                            file.write(chunk)
+                            written += len(chunk)
+                return written
+            except ZingMp3Error as error:
+                last_error = error
+        raise ZingMp3Error(
+            f"Segment download failed after {self.DOWNLOADER_HLS_RETRIES} "
+            f"attempts: {last_error}"
+        )
+
+    def _download_segments(
+        self,
+        init_url: str | None,
+        segment_urls: list[str],
+        job_dir: Path,
+        *,
+        description: str,
+    ) -> None:
+        """Fetch segments into job_dir and build the ffmpeg concat list."""
+        job_dir.mkdir(parents=True, exist_ok=True)
+        init_path: Path | None = None
+        downloaded = 0
+        if init_url:
+            init_suffix = Path(urllib.parse.urlparse(init_url).path).suffix or ".seg"
+            init_path = job_dir / f"init{init_suffix}"
+            downloaded += self._save_segment(init_url, init_path)
+        paths = [
+            job_dir / self._segment_name(index, url)
+            for index, url in enumerate(segment_urls)
+        ]
+        progress, task_id = hls_segment_progress(description, len(segment_urls))
+        started = time.monotonic()
+        pool = ThreadPoolExecutor(max_workers=self.DOWNLOADER_HLS_WORKERS)
+        cancelled = False
+        try:
+            with progress:
+                futures = {
+                    pool.submit(self._save_segment, url, path): index
+                    for index, (url, path) in enumerate(zip(segment_urls, paths))
+                }
+                try:
+                    for future in as_completed(futures):
+                        downloaded += future.result()
+                        progress.update(
+                            task_id,
+                            advance=1,
+                            downloaded=downloaded,
+                            segment_speed=downloaded / (time.monotonic() - started),
+                        )
+                except BaseException:
+                    # Drop queued segments immediately on failure or Ctrl+C; the
+                    # few in-flight requests finish in the background instead of
+                    # blocking shutdown until the whole queue completes.
+                    cancelled = True
+                    pool.shutdown(wait=False, cancel_futures=True)
+                    raise
+            with (job_dir / "list.txt").open("w", encoding="utf-8") as file:
+                if init_path:
+                    file.write(f"file '{init_path.name}'\n")
+                for path in paths:
+                    file.write(f"file '{path.name}'\n")
+        finally:
+            if not cancelled:
+                pool.shutdown(wait=True)
+
+    def _mux_hls(self, job_dir: Path, temporary: Path) -> None:
+        """Merge the downloaded segments from job_dir without re-encoding."""
+        ffmpeg = self._find_ffmpeg()
+        if not ffmpeg:
+            raise ZingMp3Error(
+                "Merging HLS segments requires ffmpeg in PATH or the standalone bundle"
+            )
+        command = [
+            ffmpeg,
+            "-nostdin",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            str(job_dir / "list.txt"),
+            "-c",
+            "copy",
+        ]
+        if temporary.suffix == ".mp4":
+            command.extend(["-movflags", "+faststart"])
+        command.append(str(temporary))
+        result = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+        if result.returncode:
+            lines = [line for line in result.stderr.splitlines() if line.strip()]
+            detail = f": {lines[-1]}" if lines else ""
+            raise ZingMp3Error(
+                f"ffmpeg failed with exit code {result.returncode}{detail}"
+            )
+
+    def _download_hls_ffmpeg(
         self,
         url: str,
         temporary: Path,
