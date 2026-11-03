@@ -1,0 +1,30 @@
+name: Scheduled tests
+
+on:
+  schedule:
+    - cron: "17 0 */3 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Unit and live URL tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Install locked dependencies
+        run: uv sync --locked --group dev
+
+      - name: Run all tests
+        run: uv run pytest

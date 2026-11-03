@@ -17,7 +17,7 @@ def crawler():
     "url",
     (
         "https://zingmp3.vn/bai-hat/Xa-Mai-Xa-Bao-Thy/ZWZB9WAB.html",
-        "https://zingmp3.vn/video-clip/Suong-Hoa-Dua-Loi-K-ICM-RYO/ZO8ZF7C7.html",
+        "https://zingmp3.vn/video-clip/ilovesieuthi-GiGi-Huong-Giang-OSAD/ueROstVrcSK7.html",
         "https://zingmp3.vn/embed/song/ZWZEI76B?start=false",
     ),
 )
